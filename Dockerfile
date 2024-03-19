@@ -1,10 +1,10 @@
 # syntax=docker.io/docker/dockerfile:1
-FROM ubuntu:22.04 as builder
+FROM ubuntu:22.04 as base
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
-    RUST_VERSION=1.72.0
+    RUST_VERSION=1.76.0
 
 RUN <<EOF
 set -e
@@ -39,10 +39,24 @@ RUN set -eux; \
     rustc --version;
 
 RUN rustup target add riscv64gc-unknown-linux-gnu
-
+RUN cargo install cargo-chef
 WORKDIR /opt/cartesi/dapp
+
+###  the planner helps cache depdenency builds
+
+FROM base AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+### Builder cross-compiles the dapp for riscv64
+
+FROM base as builder
+COPY --from=planner /opt/cartesi/dapp/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
+
+### final image is the dapp itself
 
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
