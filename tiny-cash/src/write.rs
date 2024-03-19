@@ -270,6 +270,7 @@ mod tests {
             .expect("unexpected error response");
     }
 
+    // test verifyinga shielded transactio. This fails but I think it is supposed to because of the way I am building the proof..
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
     async fn test_include_shielded_transaction() {
