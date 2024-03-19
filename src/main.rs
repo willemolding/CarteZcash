@@ -148,3 +148,12 @@ async fn verify_generated_halo2_proofs() {
     zebra_consensus::halo2::Verifier::verify_single_spawning(Item::from(&shielded_data), &VERIFYING_KEY).await
         .expect("all proofs are valid");
 }
+
+mod test {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_verify_generated_halo2_proofs() {
+        verify_generated_halo2_proofs().await;
+    }
+}

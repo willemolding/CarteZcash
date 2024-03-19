@@ -1,4 +1,4 @@
-workspace = { members = ["tiny-cash"] }
+# workspace = { members = ["tiny-cash"] }
 
 [package]
 name = "cartezcash"
@@ -17,19 +17,24 @@ tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
 chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
 anyhow = "1.0.81"
 
-zebra-consensus = { version = "1.0.0-beta.35", default-features = false }
-zebra-state = { version = "1.0.0-beta.35", default-features = false }
-zebra-test = { version = "1.0.0-beta.35", default-features = false }
-zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
+# patched zebra crates to support TinyCash network and expose things we need
+zebra-consensus = { workspace = true }
+zebra-state = { workspace = true }
+zebra-test = { workspace = true }
+zebra-chain = { workspace = true }
+
+[workspace]
+
+[workspace.dependencies]
+
+# patched zebra crates to support TinyCash network and expose things we need
+zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+zebra-state = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+zebra-test = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
 
 [patch.crates-io]
 # Ring needed to be patched as while the current version supports riscv, the version used by Zebra doesn't.
 ring = { git = "https://github.com/willemolding/ring",  branch = "willemolding/riscv-build-0.16.20" }
 # rocksdb needs to link libatomic for riscv builds but doesn't do this. This patch adds it in. Can be merged upstream
 rocksdb = { git = "https://github.com/willemolding/rust-rocksdb", branch = "willemolding/riscv-support" }
-
-# local zebra crates
-zebra-consensus = { path = "../zebra/zebra-consensus" }
-zebra-state = { path = "../zebra/zebra-state" }
-zebra-test = { path = "../zebra/zebra-test" }
-zebra-chain = { path = "../zebra/zebra-chain" }

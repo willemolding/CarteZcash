@@ -9,10 +9,10 @@ license = "APACHE-2.0"
 tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
 tracing = "0.1.40"
 chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
-zebra-consensus = { version = "1.0.0-beta.35", default-features = false, features = ["getblocktemplate-rpcs"] }
-zebra-state = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
-zebra-test = { version = "1.0.0-beta.35", default-features = false }
-zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["getblocktemplate-rpcs", "proptest-impl"] }
+zebra-consensus = { workspace = true, default-features = false, features = ["getblocktemplate-rpcs"] }
+zebra-state = { workspace = true, default-features = false, features = ["proptest-impl"] }
+zebra-test = { workspace = true, default-features = false }
+zebra-chain = { workspace = true, default-features = false, features = ["getblocktemplate-rpcs", "proptest-impl"] }
 futures-util = "0.3.30"
 tracing-test = "0.2.4"
 
