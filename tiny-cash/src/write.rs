@@ -1,12 +1,11 @@
 use std::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
+    future::Future, pin::Pin, sync::Arc, task::{Context, Poll}
 };
 use futures_util::future::FutureExt;
+use tower::{Service, ServiceExt};
+use chrono::{DateTime, Utc};
 
-use tower::Service;
-use zebra_chain::amount::{Amount, NonNegative};
+use zebra_chain::{amount::{Amount, NonNegative}, block::{Block, Header, Height}, fmt::HexDebug, parameters::Network, work::{difficulty::CompactDifficulty, equihash::Solution}};
 use zebra_chain::block;
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -79,12 +78,127 @@ where
         self.state_service.poll_ready(cx)
     }
 
-    fn call(&mut self, req: Request) -> Self::Future {
+    fn call(&mut self, req: Request) -> Self::Future {        
+        let mut state_service = self.state_service.clone();
+        let mut transaction_verifier = self.tx_verifier_service.clone();
+
+        let (previous_block_hash, height, is_genesis) = match req {
+            Request::Genesis => (block::Hash::default(), Height(0), true),
+            _ => (block::Hash::default(), Height(1), false), // TODO: get the previous block hash and use that, also get the previous height
+        };
+
+        let (transactions, burned) = match req {
+            Request::Genesis => {
+                todo!();
+            }
+            Request::Mint { amount, to } => {
+                let coinbase_tx = mint_coinbase_txn(amount, &to, height);
+                let burned = Amount::zero();
+                (vec![Arc::new(coinbase_tx)], burned)
+            }
+            Request::IncludeTransaction { transaction } => {
+                todo!();
+            }
+        };
+
+        // build the block!
+        let block = Block {
+            header: Header {
+                version: 4,
+                previous_block_hash,
+                merkle_root: transactions.iter().collect(),
+                commitment_bytes: HexDebug::default(),
+                time: DateTime::<Utc>::default(),
+                difficulty_threshold: CompactDifficulty::default(),
+                nonce: HexDebug::default(),
+                solution: Solution::default(),
+            }
+            .into(),
+            transactions: transactions.clone(),
+        };
+
+        println!("block: {:?}", block);
+
+        // the below checks are from the zebra-consensus block verifier
+        // this logic mostly taken from zebra-consensus block verifier 
+        // https://github.com/ZcashFoundation/zebra/blob/main/zebra-consensus/src/block.rs
+
+        let block_hash = block.hash();
+        let transaction_hashes: Arc<[_]> = block.transactions.iter().map(|t| t.hash()).collect();
+        let known_utxos = Arc::new(transparent::new_ordered_outputs(
+            &block,
+            &transaction_hashes,
+        ));
+
         async move {
+            // verify the transactions
+            for transaction in &transactions {
+                let rsp = transaction_verifier
+                    .ready()
+                    .await
+                    .expect("transaction verifier is always ready")
+                    .call(tx::Request::Block {
+                        transaction: transaction.clone(),
+                        known_utxos: known_utxos.clone(),
+                        height,
+                        time: block.header.time,
+                    })
+                    .await
+                    .unwrap();
+            }
+
+            // return the info about the new block
             Ok(Response {
-                block_hash: block::Hash([0; 32]),
-                burned: Amount::zero(),
+                block_hash,
+                burned,
             })
-        }.boxed()
+
+        }
+        .boxed()
+    }
+}
+
+// create a new transparent v5 coinbase transaction that mints the given amount and sends it to the given address
+fn mint_coinbase_txn(
+    amount: Amount<NonNegative>,
+    to: &transparent::Address,
+    height: Height,
+) -> Transaction {
+    // The output resulting from the transfer
+    // only spendable by the to recipient
+    let output = transparent::Output {
+        value: amount,
+        lock_script: to.create_script_from_address(),
+    };
+    Transaction::new_v5_coinbase(Network::Mainnet, height, vec![(amount, to.create_script_from_address())], Vec::new())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tower::buffer::Buffer;
+    use tower::util::BoxService;
+    use tower::ServiceExt;
+    use zebra_chain::parameters::Network;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_mint_txn() {
+        let network = Network::Mainnet;
+
+        let (state_service, _, _, _) = zebra_state::init(
+            zebra_state::Config::ephemeral(),
+            network,
+            block::Height::MAX,
+            0,
+        );
+        let state_service = Buffer::new(state_service, 1);
+
+        let verifier_service = tx::Verifier::new(network, state_service.clone());
+        let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+
+        tinycash
+            .oneshot(Request::Mint { amount: Amount::zero(), to: transparent::Address::from_script_hash(network, [0;20]) })
+            .await
+            .expect("unexpected error response");
     }
 }
