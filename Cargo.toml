@@ -27,3 +27,9 @@ zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = 
 ring = { git = "https://github.com/willemolding/ring",  branch = "willemolding/riscv-build-0.16.20" }
 # rocksdb needs to link libatomic for riscv builds but doesn't do this. This patch adds it in. Can be merged upstream
 rocksdb = { git = "https://github.com/willemolding/rust-rocksdb", branch = "willemolding/riscv-support" }
+
+# local zebra crates
+zebra-consensus = { path = "../zebra/zebra-consensus" }
+zebra-state = { path = "../zebra/zebra-state" }
+zebra-test = { path = "../zebra/zebra-test" }
+zebra-chain = { path = "../zebra/zebra-chain" }
