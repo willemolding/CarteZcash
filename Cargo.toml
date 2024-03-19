@@ -1,12 +1,17 @@
 [package]
-name = "dapp"
+name = "cartezcash"
 version = "0.1.0"
 edition = "2021"
+authors = ["Willem Olding <willemolding@gmail.com>"]
+license = "APACHE-2.0"
 
 [dependencies]
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
+chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
+anyhow = "1.0.81"
 
 zebra-consensus = { version = "1.0.0-beta.35", default-features = false }
 zebra-state = { version = "1.0.0-beta.35", default-features = false }

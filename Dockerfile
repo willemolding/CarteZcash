@@ -40,7 +40,7 @@ RUN set -eux; \
 
 RUN rustup target add riscv64gc-unknown-linux-gnu
 RUN cargo install cargo-chef
-WORKDIR /opt/cartesi/dapp
+WORKDIR /opt/cartesi/cartezcash
 
 ###  the planner helps cache depdenency builds
 
@@ -51,7 +51,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 ### Builder cross-compiles the dapp for riscv64
 
 FROM base as builder
-COPY --from=planner /opt/cartesi/dapp/recipe.json recipe.json
+COPY --from=planner /opt/cartesi/cartezcash/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
@@ -77,12 +77,12 @@ curl -fsSL https://github.com/cartesi/machine-emulator-tools/releases/download/v
 rm -rf /var/lib/apt/lists/*
 EOF
 
-ENV PATH="/opt/cartesi/bin:/opt/cartesi/dapp:${PATH}"
+ENV PATH="/opt/cartesi/bin:/opt/cartesi/cartezcash:${PATH}"
 
-WORKDIR /opt/cartesi/dapp
-COPY --from=builder /opt/cartesi/dapp/target/riscv64gc-unknown-linux-gnu/release/dapp .
+WORKDIR /opt/cartesi/cartezcash
+COPY --from=builder /opt/cartesi/cartezcash/target/riscv64gc-unknown-linux-gnu/release/cartezcash .
 
 ENV ROLLUP_HTTP_SERVER_URL="http://127.0.0.1:5004"
 
 ENTRYPOINT ["rollup-init"]
-CMD ["dapp"]
+CMD ["cartezcash"]
