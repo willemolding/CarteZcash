@@ -13,8 +13,10 @@ apt install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     ca-certificates=20230311ubuntu0.22.04.1 \
     g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
-    wget=1.21.2-2ubuntu1
+    wget=1.21.2-2ubuntu1 \
+    libclang-dev
 EOF
+# libclang-dev is required to build and link the rust-rocksdb crate for riscv64
 
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
