@@ -1,0 +1,21 @@
+[package]
+name = "tiny-cash"
+version = "0.1.0"
+edition = "2021"
+authors = ["Willem Olding <willemolding@gmail.com>"]
+license = "APACHE-2.0"
+
+[dependencies]
+tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
+tracing = "0.1.40"
+chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
+zebra-consensus = { workspace = true, default-features = false, features = ["getblocktemplate-rpcs"] }
+zebra-state = { workspace = true, default-features = false, features = ["proptest-impl"] }
+zebra-test = { workspace = true, default-features = false }
+zebra-chain = { workspace = true, default-features = false, features = ["getblocktemplate-rpcs", "proptest-impl"] }
+futures-util = "0.3.30"
+tracing-test = "0.2.4"
+
+[dev-dependencies]
+tokio = { version = "1.36.0", features = ["test-util"] }
+tracing-test = { version = "0.2.4", features = ["no-env-filter"] }

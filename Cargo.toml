@@ -1,3 +1,5 @@
+# workspace = { members = ["tiny-cash"] }
+
 [package]
 name = "cartezcash"
 version = "0.1.0"
@@ -6,6 +8,8 @@ authors = ["Willem Olding <willemolding@gmail.com>"]
 license = "APACHE-2.0"
 
 [dependencies]
+tiny-cash = { path = "tiny-cash" }
+
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
@@ -13,10 +17,28 @@ tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
 chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
 anyhow = "1.0.81"
 
-zebra-consensus = { version = "1.0.0-beta.35", default-features = false }
-zebra-state = { version = "1.0.0-beta.35", default-features = false }
-zebra-test = { version = "1.0.0-beta.35", default-features = false }
-zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
+# patched zebra crates to support TinyCash network and expose things we need
+zebra-consensus = { workspace = true }
+zebra-state = { workspace = true }
+zebra-test = { workspace = true }
+zebra-chain = { workspace = true }
+
+[workspace]
+
+[workspace.dependencies]
+
+# patched zebra crates to support TinyCash network and expose things we need
+# zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+# zebra-state = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+# zebra-test = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+# zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
+zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
+zebra-state = { path = "../zebra/zebra-state", default-features = false }
+zebra-test = { path = "../zebra/zebra-test", default-features = false }
+zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
+
+
+
 
 [patch.crates-io]
 # Ring needed to be patched as while the current version supports riscv, the version used by Zebra doesn't.
