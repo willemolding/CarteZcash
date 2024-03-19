@@ -21,7 +21,6 @@ use zebra_chain::{
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_consensus::transaction as tx;
-use zebra_state::FromDisk;
 
 // outputs locked with this script are considered burned and can be released on L1
 // this script pushed false to the stack so funds can never be spent
@@ -102,7 +101,7 @@ where
 
         let (previous_block_hash, height, is_genesis) = match req {
             Request::Genesis => (block::Hash::default(), Height(0), true),
-            _ => (block::Hash::default(), Height(1_687_104 + 1), false), // TODO: get the previous block hash and use that, also get the previous height
+            _ => (block::Hash::default(), Height(1687104), false), // TODO: get the previous block hash and use that, also get the previous height
         };
 
         let (transactions, burned) = match req {
@@ -186,30 +185,18 @@ fn mint_coinbase_txn(
     to: &transparent::Address,
     height: Height,
 ) -> Transaction {
-    let input = transparent::Input::new_coinbase(height, None, None);
-
-    // The output resulting from the transfer
-    // only spendable by the to recipient
-    let output = transparent::Output {
-        value: amount,
-        lock_script: to.create_script_from_address(),
-    };
-
-    Transaction::V5 {
-        inputs: vec![input],
-        outputs: vec![output],
-        lock_time: LockTime::Height(Height(0)),
-        expiry_height: height,
-        sapling_shielded_data: None,
-        orchard_shielded_data: None,
-        network_upgrade: zebra_chain::parameters::NetworkUpgrade::Nu5,
-    }
+    Transaction::new_v5_coinbase(
+        Network::Mainnet,
+        height,
+        vec![(amount, to.create_script_from_address())],
+        Vec::new(),
+    )
 }
 
 fn empty_coinbase_txn(height: Height) -> Transaction {
     mint_coinbase_txn(
         Amount::zero(),
-        &transparent::Address::from_bytes([0; 20]),
+        &transparent::Address::from_pub_key_hash(Network::Mainnet, [0; 20]),
         height,
     )
 }
@@ -220,7 +207,8 @@ mod tests {
     use tower::buffer::Buffer;
     use tower::util::BoxService;
     use tower::ServiceExt;
-    use zebra_chain::parameters::Network;
+    use zebra_chain::parameters::{Network, NetworkUpgrade};
+    use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
 
     #[tokio::test(flavor = "multi_thread")]
     async fn test_mint_txn() {
@@ -242,6 +230,47 @@ mod tests {
                 amount: Amount::try_from(100).unwrap(),
                 to: transparent::Address::from_script_hash(network, [0; 20]),
             })
+            .await
+            .expect("unexpected error response");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_include_transaction() {
+        let network = Network::Mainnet;
+        let nu5 = NetworkUpgrade::Nu5;
+        let nu5_activation_height = nu5
+            .activation_height(network)
+            .expect("NU5 activation height is specified");
+
+        let (state_service, _, _, _) = zebra_state::init(
+            zebra_state::Config::ephemeral(),
+            network,
+            block::Height::MAX,
+            0,
+        );
+
+        let state_service = Buffer::new(state_service, 1);
+        let verifier_service = tx::Verifier::new(network, state_service.clone());
+
+        let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+
+        let mut transaction =
+            fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter())
+                .next_back()
+                .expect("At least one fake V5 transaction in the test vectors");
+        if transaction
+            .expiry_height()
+            .expect("V5 must have expiry_height")
+            < nu5_activation_height
+        {
+            let expiry_height = transaction.expiry_height_mut();
+            *expiry_height = nu5_activation_height;
+        }
+
+        println!("transaction: {:?}", transaction);
+
+        tinycash
+            .oneshot(Request::IncludeTransaction { transaction })
             .await
             .expect("unexpected error response");
     }
