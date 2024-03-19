@@ -1,9 +1,25 @@
 [package]
-name = "dapp"
+name = "cartezcash"
 version = "0.1.0"
 edition = "2021"
+authors = ["Willem Olding <willemolding@gmail.com>"]
+license = "APACHE-2.0"
 
 [dependencies]
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
+chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
+anyhow = "1.0.81"
+
+zebra-consensus = { version = "1.0.0-beta.35", default-features = false }
+zebra-state = { version = "1.0.0-beta.35", default-features = false }
+zebra-test = { version = "1.0.0-beta.35", default-features = false }
+zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
+
+[patch.crates-io]
+# Ring needed to be patched as while the current version supports riscv, the version used by Zebra doesn't.
+ring = { git = "https://github.com/willemolding/ring",  branch = "willemolding/riscv-build-0.16.20" }
+# rocksdb needs to link libatomic for riscv builds but doesn't do this. This patch adds it in. Can be merged upstream
+rocksdb = { git = "https://github.com/willemolding/rust-rocksdb", branch = "willemolding/riscv-support" }

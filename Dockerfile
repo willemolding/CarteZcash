@@ -1,10 +1,10 @@
 # syntax=docker.io/docker/dockerfile:1
-FROM ubuntu:22.04 as builder
+FROM ubuntu:22.04 as base
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
-    RUST_VERSION=1.72.0
+    RUST_VERSION=1.76.0
 
 RUN <<EOF
 set -e
@@ -13,8 +13,10 @@ apt install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     ca-certificates=20230311ubuntu0.22.04.1 \
     g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
-    wget=1.21.2-2ubuntu1
+    wget=1.21.2-2ubuntu1 \
+    libclang-dev
 EOF
+# libclang-dev is required to build and link the rust-rocksdb crate for riscv64
 
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
@@ -37,10 +39,24 @@ RUN set -eux; \
     rustc --version;
 
 RUN rustup target add riscv64gc-unknown-linux-gnu
+RUN cargo install cargo-chef
+WORKDIR /opt/cartesi/cartezcash
 
-WORKDIR /opt/cartesi/dapp
+###  the planner helps cache depdenency builds
+
+FROM base AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+### Builder cross-compiles the dapp for riscv64
+
+FROM base as builder
+COPY --from=planner /opt/cartesi/cartezcash/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
+
+### final image is the dapp itself
 
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
@@ -61,12 +77,12 @@ curl -fsSL https://github.com/cartesi/machine-emulator-tools/releases/download/v
 rm -rf /var/lib/apt/lists/*
 EOF
 
-ENV PATH="/opt/cartesi/bin:/opt/cartesi/dapp:${PATH}"
+ENV PATH="/opt/cartesi/bin:/opt/cartesi/cartezcash:${PATH}"
 
-WORKDIR /opt/cartesi/dapp
-COPY --from=builder /opt/cartesi/dapp/target/riscv64gc-unknown-linux-gnu/release/dapp .
+WORKDIR /opt/cartesi/cartezcash
+COPY --from=builder /opt/cartesi/cartezcash/target/riscv64gc-unknown-linux-gnu/release/cartezcash .
 
 ENV ROLLUP_HTTP_SERVER_URL="http://127.0.0.1:5004"
 
 ENTRYPOINT ["rollup-init"]
-CMD ["dapp"]
+CMD ["cartezcash"]

@@ -1,5 +1,17 @@
 use json::{object, JsonValue};
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::env;
+use tower::{service_fn, ServiceExt};
+use chrono::{DateTime, TimeZone, Utc};
+
+use zebra_chain::amount::{Amount, NonNegative};
+use zebra_chain::transaction::{LockTime, Transaction};
+use zebra_chain::parameters::{Network, NetworkUpgrade};
+use zebra_chain::{block, transparent};
+use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
+use zebra_consensus::transaction::{Request, Verifier};
+use zebra_test::mock_service::MockService;
 
 pub async fn handle_advance(
     _client: &hyper::Client<hyper::client::HttpConnector>,
@@ -10,7 +22,12 @@ pub async fn handle_advance(
     let _payload = request["data"]["payload"]
         .as_str()
         .ok_or("Missing payload")?;
-    // TODO: add application logic here
+
+    // run this here test
+    println!("running test: mempool_request_with_present_input_is_accepted");
+    test_verify_txn().await;
+    println!("Test passed");
+
     Ok("accept")
 }
 
@@ -64,4 +81,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
         }
     }
+}
+
+async fn test_verify_txn() {
+    let network = Network::Mainnet;
+    let nu5 = NetworkUpgrade::Nu5;
+    let nu5_activation_height = nu5
+        .activation_height(network)
+        .expect("NU5 activation height is specified");
+
+    let state_service = service_fn(|_| async { unreachable!("Service should not be called") });
+
+    let verifier = Verifier::new(network, state_service);
+
+    let mut transaction = fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter())
+        .next_back()
+        .expect("At least one fake V5 transaction in the test vectors");
+    if transaction
+        .expiry_height()
+        .expect("V5 must have expiry_height")
+        < nu5_activation_height
+    {
+        let expiry_height = transaction.expiry_height_mut();
+        *expiry_height = nu5_activation_height;
+    }
+
+    let expected_hash = transaction.unmined_id();
+    let expiry_height = transaction
+        .expiry_height()
+        .expect("V5 must have expiry_height");
+    //
+    let result = verifier
+        .oneshot(Request::Block {
+            transaction: Arc::new(transaction),
+            known_utxos: Arc::new(HashMap::new()),
+            height: expiry_height,
+            time: DateTime::<Utc>::MAX_UTC,
+        })
+        .await;
+
+    panic!("grr");
+
+    assert_eq!(
+        result.expect("unexpected error response").tx_id(),
+        expected_hash
+    );
 }
