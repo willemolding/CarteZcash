@@ -124,8 +124,10 @@ where
 
                     let height = (tip_height + 1).unwrap();
 
-                    println!("Creating block for height: {:?}, parent_hash: {:?}", height, previous_block_hash);
-
+                    println!(
+                        "Creating block for height: {:?}, parent_hash: {:?}",
+                        height, previous_block_hash
+                    );
 
                     // Every block needs a coinbase transaction which records the height
                     // For a mint event this will also be used to mint new coins
@@ -156,7 +158,7 @@ where
                     // build the block!
                     let block = Block {
                         header: Header {
-                            version: 4,
+                            version: 5,
                             previous_block_hash,
                             merkle_root: transactions.iter().collect(),
                             commitment_bytes: HexDebug::default(),
@@ -304,14 +306,23 @@ mod tests {
             block::Height::MAX,
             0,
         );
-        let state_service = Buffer::new(state_service, 1);
+        let state_service = Buffer::new(state_service, 10);
         let verifier_service = tx::Verifier::new(network, state_service.clone());
 
         let mut tinycash =
             BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
-        tinycash.call(Request::Genesis).await.unwrap();
         tinycash
+            .ready()
+            .await
+            .unwrap()
+            .call(Request::Genesis)
+            .await
+            .unwrap();
+        tinycash
+            .ready()
+            .await
+            .unwrap()
             .call(Request::Mint {
                 amount: Amount::try_from(100).unwrap(),
                 to: transparent::Address::from_script_hash(network, [0; 20]),
