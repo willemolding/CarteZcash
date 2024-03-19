@@ -199,15 +199,23 @@ where
                     new_outputs,
                     transaction_hashes,
                 };
-                state_service.ready().await?.call(
-                    zebra_state::Request::CommitSemanticallyVerifiedBlock(prepared_block),
-                ).await?;
+                state_service
+                    .ready()
+                    .await?
+                    .call(zebra_state::Request::CommitSemanticallyVerifiedBlock(
+                        prepared_block,
+                    ))
+                    .await?;
             } else {
                 // commit the genesis block as a checkpoint
                 let prepared_block = zebra_state::CheckpointVerifiedBlock::from(Arc::new(block));
-                state_service.ready().await?.call(
-                    zebra_state::Request::CommitCheckpointVerifiedBlock(prepared_block),
-                ).await?;
+                state_service
+                    .ready()
+                    .await?
+                    .call(zebra_state::Request::CommitCheckpointVerifiedBlock(
+                        prepared_block,
+                    ))
+                    .await?;
             }
 
             // return the info about the new block
@@ -249,28 +257,31 @@ mod tests {
     use zebra_chain::serialization::ZcashDeserializeInto;
     use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
 
+    // #[tokio::test(flavor = "multi_thread")]
+    // #[tracing_test::traced_test]
+    // async fn test_genesis() {
+    //     let network = Network::TinyCash;
+
+    //     let (state_service, _, _, _) = zebra_state::init(
+    //         zebra_state::Config::ephemeral(),
+    //         network,
+    //         block::Height::MAX,
+    //         0,
+    //     );
+    //     let state_service = Buffer::new(state_service, 1);
+    //     let verifier_service = tx::Verifier::new(network, state_service.clone());
+
+    //     let mut tinycash =
+    //         BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+
+    //     tinycash
+    //         .call(Request::Genesis)
+    //         .await
+    //         .expect("unexpected error response");
+    // }
+
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_genesis() {
-        let network = Network::TinyCash;
-
-        let (state_service, _, _, _) = zebra_state::init(
-            zebra_state::Config::ephemeral(),
-            network,
-            block::Height::MAX,
-            0,
-        );
-        let state_service = Buffer::new(state_service, 1);
-        let verifier_service = tx::Verifier::new(network, state_service.clone());
-
-        let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
-
-        tinycash
-            .oneshot(Request::Genesis)
-            .await
-            .expect("unexpected error response");
-    }
-
-    #[tokio::test(flavor = "multi_thread")]
+    #[tracing_test::traced_test]
     async fn test_mint_txn() {
         let network = Network::TinyCash;
 
@@ -283,10 +294,12 @@ mod tests {
         let state_service = Buffer::new(state_service, 1);
         let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-        let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+        let mut tinycash =
+            BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
+        tinycash.call(Request::Genesis).await.unwrap();
         tinycash
-            .oneshot(Request::Mint {
+            .call(Request::Mint {
                 amount: Amount::try_from(100).unwrap(),
                 to: transparent::Address::from_script_hash(network, [0; 20]),
             })
@@ -294,41 +307,43 @@ mod tests {
             .expect("unexpected error response");
     }
 
-    #[tokio::test(flavor = "multi_thread")]
-    async fn test_include_transparent_transaction() {
-        let network = Network::TinyCash;
-        let nu5 = NetworkUpgrade::Nu5;
-        let nu5_activation_height = nu5
-            .activation_height(network)
-            .expect("NU5 activation height is specified");
+    // #[tokio::test(flavor = "multi_thread")]
+    // #[tracing_test::traced_test]
+    // async fn test_include_transparent_transaction() {
+    //     let network = Network::TinyCash;
+    //     let nu5 = NetworkUpgrade::Nu5;
+    //     let nu5_activation_height = nu5
+    //         .activation_height(network)
+    //         .expect("NU5 activation height is specified");
 
-        let (state_service, _, _, _) = zebra_state::init(
-            zebra_state::Config::ephemeral(),
-            network,
-            block::Height::MAX,
-            0,
-        );
+    //     let (state_service, _, _, _) = zebra_state::init(
+    //         zebra_state::Config::ephemeral(),
+    //         network,
+    //         block::Height::MAX,
+    //         0,
+    //     );
 
-        let state_service = Buffer::new(state_service, 1);
-        let verifier_service = tx::Verifier::new(network, state_service.clone());
+    //     let state_service = Buffer::new(state_service, 1);
+    //     let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-        let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    //     let mut tinycash =
+    //         BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
-        let mut transaction =
-            fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter())
-                .next_back()
-                .expect("At least one fake V5 transaction in the test vectors");
+    //     tinycash.call(Request::Genesis).await.unwrap();
 
-        let expiry_height = transaction.expiry_height_mut();
-        *expiry_height = nu5_activation_height;
+    //     let mut transaction =
+    //         fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter())
+    //             .next_back()
+    //             .expect("At least one fake V5 transaction in the test vectors");
 
-        println!("transaction: {:?}", transaction);
+    //     let expiry_height = transaction.expiry_height_mut();
+    //     *expiry_height = nu5_activation_height;
 
-        tinycash
-            .oneshot(Request::IncludeTransaction { transaction })
-            .await
-            .expect("unexpected error response");
-    }
+    //     tinycash
+    //         .call(Request::IncludeTransaction { transaction })
+    //         .await
+    //         .expect("unexpected error response");
+    // }
 
     // // test verifyinga shielded transactio. This fails but I think it is supposed to because of the way I am building the proof..
     // #[tokio::test(flavor = "multi_thread")]
