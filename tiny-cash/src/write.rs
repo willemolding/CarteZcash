@@ -99,79 +99,92 @@ where
         let mut state_service = self.state_service.clone();
         let mut transaction_verifier = self.tx_verifier_service.clone();
 
-        let (block, height, burned) = match req {
-            Request::Genesis => {
-                (
-                    Block::zcash_deserialize(
-                        zebra_test::vectors::BLOCK_MAINNET_GENESIS_BYTES.as_slice(),
-                    )
-                    .unwrap(),
-                    Height(0),
-                    Amount::zero(),
-                ) // here is one I prepared earlier :)
-            }
-            _ => {
-                let previous_block_hash = block::Hash::default(); // TODO: get the previous block hash
-                let height = Height(1); // TODO: get the previous height
-
-                // Every block needs a coinbase transaction which records the height
-                // For a mint event this will also be used to mint new coins
-                // otherwise it is just an empty txn
-                // also keep track of if any coins were burned by sending to the mt doom script
-                let (transactions, burned) = match req {
-                    Request::Genesis => {
-                        unreachable!("genesis block is handled prior")
-                    }
-                    Request::Mint { amount, to } => {
-                        let coinbase_tx = mint_coinbase_txn(amount, &to, height);
-                        let burned = Amount::zero(); // FIX: It is conceivable that the minted coins sent straight to Mt Doom. Should handle this case
-                        (vec![Arc::new(coinbase_tx)], burned)
-                    }
-                    Request::IncludeTransaction { transaction } => {
-                        let coinbase_tx = empty_coinbase_txn(height);
-                        let burned = transaction
-                            .outputs()
-                            .iter()
-                            .filter(|output| output.lock_script == mt_doom())
-                            .map(|output| output.value)
-                            .reduce(|total, elem| (total + elem).expect("overflow"))
-                            .unwrap_or(Amount::zero());
-                        (vec![Arc::new(coinbase_tx), Arc::new(transaction)], burned)
-                    }
-                };
-
-                // build the block!
-                let block = Block {
-                    header: Header {
-                        version: 4,
-                        previous_block_hash,
-                        merkle_root: transactions.iter().collect(),
-                        commitment_bytes: HexDebug::default(),
-                        time: DateTime::<Utc>::default(),
-                        difficulty_threshold: CompactDifficulty::default(),
-                        nonce: HexDebug::default(),
-                        solution: Solution::default(),
-                    }
-                    .into(),
-                    transactions: transactions.clone(),
-                };
-                (block, height, burned)
-            }
-        };
-
-        // the below checks are from the zebra-consensus block verifier
-        // this logic mostly taken from zebra-consensus block verifier
-        // https://github.com/ZcashFoundation/zebra/blob/main/zebra-consensus/src/block.rs
-
-        let block_hash = block.hash();
-        let transaction_hashes: Arc<[_]> = block.transactions.iter().map(|t| t.hash()).collect();
-        let transactions = block.transactions.clone();
-        let known_utxos = Arc::new(transparent::new_ordered_outputs(
-            &block,
-            &transaction_hashes,
-        ));
-
         async move {
+            let (block, height, burned) = match req {
+                Request::Genesis => {
+                    (
+                        Block::zcash_deserialize(
+                            zebra_test::vectors::BLOCK_MAINNET_GENESIS_BYTES.as_slice(),
+                        )
+                        .unwrap(),
+                        Height(0),
+                        Amount::zero(),
+                    ) // here is one I prepared earlier :)
+                }
+                _ => {
+                    let (tip_height, previous_block_hash) = match state_service
+                        .ready()
+                        .await?
+                        .call(zebra_state::Request::Tip)
+                        .await?
+                    {
+                        zebra_state::Response::Tip(Some(tip)) => tip,
+                        _ => panic!("unexpected reponse for tip request"),
+                    };
+
+                    let height = (tip_height + 1).unwrap();
+
+                    println!("Creating block for height: {:?}, parent_hash: {:?}", height, previous_block_hash);
+
+
+                    // Every block needs a coinbase transaction which records the height
+                    // For a mint event this will also be used to mint new coins
+                    // otherwise it is just an empty txn
+                    // also keep track of if any coins were burned by sending to the mt doom script
+                    let (transactions, burned) = match req {
+                        Request::Genesis => {
+                            unreachable!("genesis block is handled prior")
+                        }
+                        Request::Mint { amount, to } => {
+                            let coinbase_tx = mint_coinbase_txn(amount, &to, height);
+                            let burned = Amount::zero(); // FIX: It is conceivable that the minted coins sent straight to Mt Doom. Should handle this case
+                            (vec![Arc::new(coinbase_tx)], burned)
+                        }
+                        Request::IncludeTransaction { transaction } => {
+                            let coinbase_tx = empty_coinbase_txn(height);
+                            let burned = transaction
+                                .outputs()
+                                .iter()
+                                .filter(|output| output.lock_script == mt_doom())
+                                .map(|output| output.value)
+                                .reduce(|total, elem| (total + elem).expect("overflow"))
+                                .unwrap_or(Amount::zero());
+                            (vec![Arc::new(coinbase_tx), Arc::new(transaction)], burned)
+                        }
+                    };
+
+                    // build the block!
+                    let block = Block {
+                        header: Header {
+                            version: 4,
+                            previous_block_hash,
+                            merkle_root: transactions.iter().collect(),
+                            commitment_bytes: HexDebug::default(),
+                            time: DateTime::<Utc>::default(),
+                            difficulty_threshold: CompactDifficulty::default(),
+                            nonce: HexDebug::default(),
+                            solution: Solution::default(),
+                        }
+                        .into(),
+                        transactions: transactions.clone(),
+                    };
+                    (block, height, burned)
+                }
+            };
+
+            // the below checks are from the zebra-consensus block verifier
+            // this logic mostly taken from zebra-consensus block verifier
+            // https://github.com/ZcashFoundation/zebra/blob/main/zebra-consensus/src/block.rs
+
+            let block_hash = block.hash();
+            let transaction_hashes: Arc<[_]> =
+                block.transactions.iter().map(|t| t.hash()).collect();
+            let transactions = block.transactions.clone();
+            let known_utxos = Arc::new(transparent::new_ordered_outputs(
+                &block,
+                &transaction_hashes,
+            ));
+
             if height > Height(0) {
                 // verify the transactions
                 for transaction in &transactions {
