@@ -7,3 +7,11 @@ edition = "2021"
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
+
+zebra-consensus = { version = "1.0.0-beta.35", default-features = false }
+zebra-state = { version = "1.0.0-beta.35", default-features = false }
+zebra-test = { version = "1.0.0-beta.35", default-features = false }
+zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
+
+[patch.crates-io]
+ring = { git = "https://github.com/willemolding/ring",  branch = "willemolding/riscv-build-0.16.20" }
