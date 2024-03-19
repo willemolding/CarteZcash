@@ -5,7 +5,7 @@ use futures_util::future::FutureExt;
 use tower::{Service, ServiceExt};
 use chrono::{DateTime, Utc};
 
-use zebra_chain::{amount::{Amount, NonNegative}, block::{Block, Header, Height}, fmt::HexDebug, parameters::Network, work::{difficulty::CompactDifficulty, equihash::Solution}};
+use zebra_chain::{amount::{Amount, NonNegative}, block::{Block, Header, Height}, fmt::HexDebug, parameters::Network, transaction::LockTime, work::{difficulty::CompactDifficulty, equihash::Solution}};
 use zebra_chain::block;
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -164,13 +164,24 @@ fn mint_coinbase_txn(
     to: &transparent::Address,
     height: Height,
 ) -> Transaction {
+    let input = transparent::Input::new_coinbase(height, None, None);
+
     // The output resulting from the transfer
     // only spendable by the to recipient
     let output = transparent::Output {
         value: amount,
         lock_script: to.create_script_from_address(),
     };
-    Transaction::new_v5_coinbase(Network::Mainnet, height, vec![(amount, to.create_script_from_address())], Vec::new())
+
+    Transaction::V5 {
+        inputs: vec![input],
+        outputs: vec![output],
+        lock_time: LockTime::Height(Height(0)),
+        expiry_height: height,
+        sapling_shielded_data: None,
+        orchard_shielded_data: None,
+        network_upgrade: zebra_chain::parameters::NetworkUpgrade::Nu5,
+    }
 }
 
 #[cfg(test)]
@@ -192,8 +203,8 @@ mod tests {
             0,
         );
         let state_service = Buffer::new(state_service, 1);
-
         let verifier_service = tx::Verifier::new(network, state_service.clone());
+
         let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
         tinycash
