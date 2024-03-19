@@ -269,31 +269,30 @@ mod tests {
     use tower::util::BoxService;
     use tower::ServiceExt;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
-    use zebra_chain::serialization::ZcashDeserializeInto;
     use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
 
-    // #[tokio::test(flavor = "multi_thread")]
-    // #[tracing_test::traced_test]
-    // async fn test_genesis() {
-    //     let network = Network::TinyCash;
+    #[tokio::test(flavor = "multi_thread")]
+    #[tracing_test::traced_test]
+    async fn test_genesis() {
+        let network = Network::TinyCash;
 
-    //     let (state_service, _, _, _) = zebra_state::init(
-    //         zebra_state::Config::ephemeral(),
-    //         network,
-    //         block::Height::MAX,
-    //         0,
-    //     );
-    //     let state_service = Buffer::new(state_service, 1);
-    //     let verifier_service = tx::Verifier::new(network, state_service.clone());
+        let (state_service, _, _, _) = zebra_state::init(
+            zebra_state::Config::ephemeral(),
+            network,
+            block::Height::MAX,
+            0,
+        );
+        let state_service = Buffer::new(state_service, 1);
+        let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    //     let mut tinycash =
-    //         BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+        let mut tinycash =
+            BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
-    //     tinycash
-    //         .call(Request::Genesis)
-    //         .await
-    //         .expect("unexpected error response");
-    // }
+        tinycash
+            .call(Request::Genesis)
+            .await
+            .expect("unexpected error response");
+    }
 
     #[tokio::test(flavor = "multi_thread")]
     // #[tracing_test::traced_test]
@@ -319,6 +318,18 @@ mod tests {
             .call(Request::Genesis)
             .await
             .unwrap();
+
+        tinycash
+            .ready()
+            .await
+            .unwrap()
+            .call(Request::Mint {
+                amount: Amount::try_from(100).unwrap(),
+                to: transparent::Address::from_script_hash(network, [0; 20]),
+            })
+            .await
+            .expect("unexpected error response");
+
         tinycash
             .ready()
             .await
@@ -353,14 +364,6 @@ mod tests {
         let mut tinycash =
             BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
-        let mut transaction =
-            fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter())
-                .next_back()
-                .expect("At least one fake V5 transaction in the test vectors");
-
-        let expiry_height = transaction.expiry_height_mut();
-        *expiry_height = nu5_activation_height;
-
         tinycash
             .ready()
             .await
@@ -368,13 +371,23 @@ mod tests {
             .call(Request::Genesis)
             .await
             .unwrap();
-        tinycash
-            .ready()
-            .await
-            .unwrap()
-            .call(Request::IncludeTransaction { transaction })
-            .await
-            .expect("unexpected error response");
+
+        for mut transaction in
+            fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter().skip(1))
+        {
+            println!("submitting transaction: {:?}", transaction);
+
+            let expiry_height = transaction.expiry_height_mut();
+            *expiry_height = nu5_activation_height;
+
+            tinycash
+                .ready()
+                .await
+                .unwrap()
+                .call(Request::IncludeTransaction { transaction })
+                .await
+                .expect("unexpected error response");
+        }
     }
 
     // // test verifyinga shielded transactio. This fails but I think it is supposed to because of the way I am building the proof..
