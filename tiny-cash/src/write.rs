@@ -84,7 +84,7 @@ where
 
         let (previous_block_hash, height, is_genesis) = match req {
             Request::Genesis => (block::Hash::default(), Height(0), true),
-            _ => (block::Hash::default(), Height(1), false), // TODO: get the previous block hash and use that, also get the previous height
+            _ => (block::Hash::default(), Height(1_687_104 + 1), false), // TODO: get the previous block hash and use that, also get the previous height
         };
 
         let (transactions, burned) = match req {
