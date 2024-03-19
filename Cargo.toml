@@ -1,3 +1,5 @@
+workspace = { members = ["tiny-cash"] }
+
 [package]
 name = "cartezcash"
 version = "0.1.0"
@@ -6,6 +8,8 @@ authors = ["Willem Olding <willemolding@gmail.com>"]
 license = "APACHE-2.0"
 
 [dependencies]
+tiny-cash = { path = "tiny-cash" }
+
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }

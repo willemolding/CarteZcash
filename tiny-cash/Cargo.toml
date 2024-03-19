@@ -11,3 +11,4 @@ zebra-consensus = { version = "1.0.0-beta.35", default-features = false, feature
 zebra-state = { version = "1.0.0-beta.35", default-features = false, features = ["proptest-impl"] }
 zebra-test = { version = "1.0.0-beta.35", default-features = false }
 zebra-chain = { version = "1.0.0-beta.35", default-features = false, features = ["getblocktemplate-rpcs", "proptest-impl"] }
+futures-util = "0.3.30"

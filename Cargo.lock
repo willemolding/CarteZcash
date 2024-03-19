@@ -352,6 +352,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cartezcash"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "hyper",
+ "json",
+ "tiny-cash",
+ "tokio",
+ "tower",
+ "zebra-chain",
+ "zebra-consensus",
+ "zebra-state",
+ "zebra-test",
+]
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -638,22 +655,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.53",
-]
-
-[[package]]
-name = "dapp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "hyper",
- "json",
- "tokio",
- "tower",
- "zebra-chain",
- "zebra-consensus",
- "zebra-state",
- "zebra-test",
 ]
 
 [[package]]
@@ -2646,6 +2647,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-cash"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "tower",
+ "zebra-chain",
+ "zebra-consensus",
+ "zebra-state",
+ "zebra-test",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3505,6 +3518,7 @@ dependencies = [
  "tracing",
  "uint",
  "x25519-dalek",
+ "zcash_address",
  "zcash_encoding",
  "zcash_history",
  "zcash_note_encryption",
@@ -3588,6 +3602,8 @@ dependencies = [
  "lazy_static",
  "metrics 0.22.3",
  "mset",
+ "proptest",
+ "proptest-derive",
  "rayon",
  "regex",
  "rlimit",
@@ -3600,6 +3616,7 @@ dependencies = [
  "tower",
  "tracing",
  "zebra-chain",
+ "zebra-test",
 ]
 
 [[package]]
