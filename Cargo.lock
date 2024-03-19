@@ -2650,7 +2650,9 @@ dependencies = [
 name = "tiny-cash"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "futures-util",
+ "tokio",
  "tower",
  "zebra-chain",
  "zebra-consensus",
