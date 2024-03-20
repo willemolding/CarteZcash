@@ -1,7 +1,7 @@
 use std::future::Future;
 use futures_util::future::FutureExt;
 use std::pin::Pin;
-use tower::Service;
+use tower::{Service, ServiceExt};
 
 pub use request::{AdvanceStateRequest, Request};
 pub use response::Response;
@@ -40,7 +40,7 @@ where
         &mut self,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Result<(), Self::Error>> {
-        todo!()
+        self.tiny_cash.poll_ready(cx)
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
@@ -49,11 +49,11 @@ where
             let res = match req {
                 Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
                     println!("handling reposit request for amount {} to {}", amount, to);
-                    tiny_cash.call(tiny_cash::write::Request::Mint { amount, to })
+                    tiny_cash.ready().await?.call(tiny_cash::write::Request::Mint { amount, to })
                 }
                 Request::AdvanceState(AdvanceStateRequest::Transact { txn }) => {
                     println!("handling transact request for txn {:?}", txn);
-                    tiny_cash.call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
+                    tiny_cash.ready().await?.call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                 }
                 Request::InspectState => {
                     println!("handling inspect state request");
