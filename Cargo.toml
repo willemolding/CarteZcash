@@ -8,7 +8,6 @@ authors = ["Willem Olding <willemolding@gmail.com>"]
 license = "APACHE-2.0"
 
 [dependencies]
-tiny-cash = { path = "tiny-cash" }
 
 json = "0.12"
 hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
@@ -17,11 +16,15 @@ tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
 chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
 anyhow = "1.0.81"
 
-# patched zebra crates to support TinyCash network and expose things we need
-zebra-consensus = { workspace = true }
-zebra-state = { workspace = true }
-zebra-test = { workspace = true }
+# zebra-consensus = { workspace = true }
+# zebra-state = { workspace = true }
+# zebra-test = { workspace = true }
 zebra-chain = { workspace = true }
+hex = "0.4.3"
+uint = "0.9.5"
+ethereum-types = "0.14.1"
+
+# tiny-cash = { path = "tiny-cash" }
 
 [workspace]
 
