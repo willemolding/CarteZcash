@@ -48,15 +48,15 @@ where
         async move {
             let res = match req {
                 Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
-                    println!("handling reposit request for amount {} to {}", amount, to);
+                    tracing::info!("handling reposit request for amount {} to {}", amount, to);
                     tiny_cash.ready().await?.call(tiny_cash::write::Request::Mint { amount, to })
                 }
                 Request::AdvanceState(AdvanceStateRequest::Transact { txn }) => {
-                    println!("handling transact request for txn {:?}", txn);
+                    tracing::info!("handling transact request for txn {:?}", txn);
                     tiny_cash.ready().await?.call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                 }
                 Request::InspectState => {
-                    println!("handling inspect state request");
+                    tracing::info!("handling inspect state request");
                     todo!()
                 }
             }.await;

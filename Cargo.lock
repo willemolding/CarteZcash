@@ -365,8 +365,12 @@ dependencies = [
  "tiny-cash",
  "tokio",
  "tower",
+ "tracing",
+ "tracing-subscriber",
  "uint",
  "zebra-chain",
+ "zebra-consensus",
+ "zebra-state",
 ]
 
 [[package]]
