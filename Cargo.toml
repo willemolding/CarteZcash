@@ -28,14 +28,18 @@ zebra-chain = { workspace = true }
 [workspace.dependencies]
 
 # patched zebra crates to support TinyCash network and expose things we need
-# zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
-# zebra-state = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
-# zebra-test = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
-# zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "698ee049c4d0b21d0261462e3a4129e5896a2b28", default-features = false }
-zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
-zebra-state = { path = "../zebra/zebra-state", default-features = false }
-zebra-test = { path = "../zebra/zebra-test", default-features = false }
-zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
+
+# use these for docker builds
+zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "ceaa5b8a9a909d8bae0adcddcad9467474ad5d60", default-features = false }
+zebra-state = { git = "https://github.com/willemolding/zebra", rev = "ceaa5b8a9a909d8bae0adcddcad9467474ad5d60", default-features = false }
+zebra-test = { git = "https://github.com/willemolding/zebra", rev = "ceaa5b8a9a909d8bae0adcddcad9467474ad5d60", default-features = false }
+zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "ceaa5b8a9a909d8bae0adcddcad9467474ad5d60", default-features = false }
+
+# use these for speedy local development
+# zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
+# zebra-state = { path = "../zebra/zebra-state", default-features = false }
+# zebra-test = { path = "../zebra/zebra-test", default-features = false }
+# zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
 
 
 
