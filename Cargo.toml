@@ -1,5 +1,3 @@
-# workspace = { members = ["tiny-cash"] }
-
 [package]
 name = "cartezcash"
 version = "0.1.0"
@@ -15,18 +13,15 @@ tokio = { version = "1.32", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.4.13", features = ["timeout", "util", "buffer"] }
 chrono = { version = "0.4.34", default-features = false, features = ["clock", "std"] }
 anyhow = "1.0.81"
-
-# zebra-consensus = { workspace = true }
-# zebra-state = { workspace = true }
-# zebra-test = { workspace = true }
-zebra-chain = { workspace = true }
 hex = "0.4.3"
 uint = "0.9.5"
 ethereum-types = "0.14.1"
 
-# tiny-cash = { path = "tiny-cash" }
+zebra-chain = { workspace = true }
+tiny-cash = { path = "tiny-cash" }
 
 [workspace]
+members = ["tiny-cash"]
 
 [workspace.dependencies]
 
