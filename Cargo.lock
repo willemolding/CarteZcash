@@ -358,6 +358,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "ethereum-types",
+ "futures-util",
  "hex",
  "hyper",
  "json",

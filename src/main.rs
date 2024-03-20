@@ -26,10 +26,11 @@ async fn main() -> Result<(), anyhow::Error> {
             let utf = std::str::from_utf8(&body)?;
             let req = json::parse(utf)?;
             println!("Received raw request: {:?}", req);
-            let dAppRequest = Request::try_from(req)?;
-            println!("Parsed request: {:?}", dAppRequest);
+            let dapp_request = Request::try_from(req)?;
+            println!("Parsed request: {:?}", dapp_request);
 
-            status = cartezcash.call(dAppRequest).await?;
+            status = cartezcash.call(dapp_request).await.unwrap();
+            println!("Tinycash returned status: {:?}", &status);
         }
     }
 }

@@ -1,7 +1,7 @@
 use json::JsonValue;
 use ethereum_types::U256;
 
-use zebra_chain::amount::Amount;
+use zebra_chain::amount::{Amount, NonNegative};
 use zebra_chain::serialization::ZcashDeserialize;
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent::Address;
@@ -32,7 +32,7 @@ impl TryFrom<JsonValue> for Request {
 ///      or generic data message {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","epoch_index":0,"input_index":1,"block_number":122,"timestamp":1710913648},"payload":"0xffff"}}
 #[derive(Debug)]
 pub enum AdvanceStateRequest {
-    Deposit { amount: Amount, to: Address },
+    Deposit { amount: Amount<NonNegative>, to: Address },
     Transact { txn: Transaction },
 }
 
