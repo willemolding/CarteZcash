@@ -9,6 +9,12 @@ run-local:
 sunodo-nobackend:
     sunodo run --no-backend
 
+test-deposit:
+    sunodo send ether --amount=10 --execLayerData=0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+
+test-tx:
+    sunodo send generic --input=0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+
 check:
     cargo check --target aarch64-apple-darwin
 
