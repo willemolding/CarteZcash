@@ -6,7 +6,8 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
-use tower::{Service, ServiceExt};
+use tower::{buffer::Buffer, Service, ServiceExt};
+use tower::util::BoxService;
 
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -21,6 +22,8 @@ use zebra_chain::{
 };
 use zebra_chain::{block, serialization::ZcashDeserialize, transparent::GENESIS_COINBASE_DATA};
 use zebra_consensus::transaction as tx;
+
+pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 // outputs locked with this script are considered burned and can be released on L1
 // this script pushed false to the stack so funds can never be spent
@@ -40,6 +43,25 @@ impl<S, V> TinyCashWriteService<S, V> {
             tx_verifier_service,
         }
     }
+}
+
+// return a concrete implementation of the service
+pub fn init() -> TinyCashWriteService<
+    Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>,
+    tx::Verifier<Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>>
+ > {
+    let network = Network::TinyCash;
+
+    let (state_service, _, _, _) = zebra_state::init(
+        zebra_state::Config::ephemeral(),
+        network,
+        block::Height::MAX,
+        0,
+    );
+    let state_service = Buffer::new(state_service, 1);
+    let verifier_service = tx::Verifier::new(network, state_service.clone());
+
+    TinyCashWriteService::new(state_service, verifier_service)
 }
 
 /// The request type for the TinyCash service
@@ -87,7 +109,7 @@ where
     V::Future: Send + 'static,
 {
     type Response = Response;
-    type Error = zebra_consensus::BoxError;
+    type Error = BoxError;
     type Future =
         Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
 
@@ -266,7 +288,6 @@ fn empty_coinbase_txn(height: Height) -> Transaction {
 mod tests {
     use super::*;
     use tower::buffer::Buffer;
-    use tower::util::BoxService;
     use tower::ServiceExt;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
     use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
