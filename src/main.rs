@@ -1,18 +1,17 @@
 use std::env;
+use tower::Service;
 
-use crate::request::Request;
-use crate::response::Response;
+use service::{Request, Response, CarteZcashService};
 
-mod request;
-mod response;
+mod service;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
+    let mut service = CarteZcashService;
 
     let mut response = Response::Accept { burned: 0 };
-
     loop {
         println!("Sending finish");
         let response = client.request(response.host_request(&server_addr)).await?;
@@ -24,10 +23,11 @@ async fn main() -> Result<(), anyhow::Error> {
             let body = hyper::body::to_bytes(response).await?;
             let utf = std::str::from_utf8(&body)?;
             let req = json::parse(utf)?;
+            println!("Received raw request: {:?}", req);
             let dAppRequest = Request::try_from(req)?;
-            println!("Received request: {:?}", dAppRequest);
+            println!("Parsed request: {:?}", dAppRequest);
 
-            // todo: convert request into response
+            let response = service.call(dAppRequest).await?;
         }
     }
 }

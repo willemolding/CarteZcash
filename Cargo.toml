@@ -21,6 +21,8 @@ anyhow = "1.0.81"
 # zebra-test = { workspace = true }
 zebra-chain = { workspace = true }
 hex = "0.4.3"
+uint = "0.9.5"
+ethereum-types = "0.14.1"
 
 # tiny-cash = { path = "tiny-cash" }
 

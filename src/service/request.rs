@@ -1,4 +1,5 @@
 use json::JsonValue;
+use ethereum_types::U256;
 
 use zebra_chain::amount::Amount;
 use zebra_chain::serialization::ZcashDeserialize;
@@ -47,23 +48,35 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
         }
         match req["data"]["metadata"]["msg_sender"].as_str() {
             Some(ETH_DEPOSIT_ADDR) => {
-                todo!();
+                /*  encoding as determined by the Cartesi Eth deposit contract
+                abi.encodePacked(
+                    sender, //              20B
+                    value, //               32B
+                    execLayerData //        arbitrary size
+                );
+                */
+                let hex = req["data"]["payload"].as_str().unwrap();
+                let bytes = hex::decode(hex.trim_start_matches("0x"))?;
+
+                let _sender = &bytes[0..20];
+                let value = U256::from_big_endian(&bytes[20..52]).checked_div(U256::try_from(10_000_000_000_u64).unwrap()).unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
+                println!("Value: {:?}", value);
+                let dest_t_address = Address::from_pub_key_hash(zebra_chain::parameters::Network::Mainnet, bytes[52..].try_into().unwrap());
+                
+                Ok(AdvanceStateRequest::Deposit {
+                    amount: Amount::try_from(value.as_u64())?, // FIX: This is going to panic if too much eth is sent
+                    to: dest_t_address,
+                })
             }
             Some(INBOX_CONTRACT_ADDR) => {
-                let hex = req["data"]["payload"]
-                    .as_str().unwrap();
-
-                Ok(AdvanceStateRequest::Transact {
-                    txn: zcash_txn_from_hex(hex)?,
-                })
+                let hex = req["data"]["payload"].as_str().unwrap();
+                let bytes = hex::decode(hex.trim_start_matches("0x"))?;
+                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(
+                    &mut bytes.as_slice(),
+                )?;
+                Ok(AdvanceStateRequest::Transact { txn })
             }
             _ => anyhow::bail!("unrecognised sender"),
         }
     }
-}
-
-pub fn zcash_txn_from_hex(hex: &str) -> Result<Transaction, anyhow::Error> {
-    let bytes = hex::decode(hex.trim_start_matches("0x"))?;
-    let txn = zebra_chain::transaction::Transaction::zcash_deserialize(&mut bytes.as_slice())?;
-    Ok(txn)
 }
