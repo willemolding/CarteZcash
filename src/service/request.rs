@@ -61,6 +61,8 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 let _sender = &bytes[0..20];
                 let value = U256::from_big_endian(&bytes[20..52]).checked_div(U256::try_from(10_000_000_000_u64).unwrap()).unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
                 println!("Value: {:?}", value);
+                println!("Key bytes: {:?}", &bytes[52..]);
+
                 let dest_t_address = Address::from_pub_key_hash(zebra_chain::parameters::Network::Mainnet, bytes[52..].try_into().unwrap());
                 
                 Ok(AdvanceStateRequest::Deposit {

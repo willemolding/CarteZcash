@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::str::FromStr;
+
 use prost::bytes::buf::Chain;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -6,7 +9,8 @@ use tower::{Service, ServiceExt};
 use tracing_subscriber::fmt::format::Compact;
 use zebra_chain::block::Height;
 use zebra_chain::orchard::tree::SerializedTree;
-use zebra_state::{HashOrHeight, ReadResponse};
+use zebra_chain::transparent;
+use zebra_state::{HashOrHeight, IntoDisk, ReadResponse};
 
 use crate::conversions;
 use crate::proto::compact_formats::*;
@@ -76,10 +80,18 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         tracing::info!("get_block_range called with: {:?} ", request);
         let (tx, rx) = mpsc::channel(10);
 
+        // these sometimes come in reverse order...
         let block_range = request.into_inner();
+        let a = block_range.start.unwrap().height;
+        let b = block_range.end.unwrap().height;
+
+        let start = std::cmp::min(a, b);
+        let end = std::cmp::max(a, b);
+        let range = if a < b { (start..=end).collect::<Vec<u64>>() } else { (start..=end).rev().collect() };
+
         let mut state_read_service = self.state_read_service.clone();
 
-        for height in block_range.start.unwrap().height..=block_range.end.unwrap().height {
+        for height in range {
             tracing::info!("fetching block at height: {}", height);
             let res: zebra_state::ReadResponse = state_read_service
                 .ready()
@@ -133,9 +145,63 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<TransparentAddressBlockFilter>,
     ) -> std::result::Result<tonic::Response<Self::GetTaddressTxidsStream>, tonic::Status> {
         tracing::info!("get_taddress_txids called");
-        let (tx, rx) = mpsc::channel(4);
-        // TODO: Send the txiods into the tx end of the channel
-        Ok(tonic::Response::new(ReceiverStream::new(rx)))
+
+        let request = request.into_inner();
+        let address = transparent::Address::from_str(&request.address).unwrap();
+        let mut addresses = HashSet::new();
+        addresses.insert(address);
+
+        let block_range = request.range.unwrap();
+        
+        let mut state_read_service = self.state_read_service.clone();
+
+        let res: zebra_state::ReadResponse = state_read_service
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::TransactionIdsByAddresses {
+                addresses,
+                height_range: Height(block_range.start.unwrap().height as u32)..=Height(block_range.end.unwrap().height as u32),
+            })
+            .await
+            .unwrap();
+
+        if let ReadResponse::AddressesTransactionIds(txns) = res {
+            let (tx, rx) = mpsc::channel(10);
+            tracing::info!("{:?} transactions found", txns.len());
+            for (_location, tx_id) in txns.iter() {
+                tracing::info!("got txid: {:?}", tx_id);
+
+                let res = state_read_service
+                    .ready()
+                    .await
+                    .unwrap()
+                    .call(zebra_state::ReadRequest::Transaction(*tx_id))
+                    .await
+                    .unwrap();
+
+                if let ReadResponse::Transaction(Some(transaction)) = res {
+                    tx.send(Ok(RawTransaction {
+                        data: transaction.tx.as_bytes(),
+                        height: transaction.height.0 as u64,
+                    }))
+                    .await
+                    .unwrap();
+                } else {
+                    tracing::info!("unexpected response");
+                }
+
+                
+            }
+            Ok(tonic::Response::new(ReceiverStream::new(rx)))
+
+        } else {
+            tracing::info!("unexpected response");
+            Err(tonic::Status::unimplemented(
+                "unexpcted response from TransactionIdsByAddresses",
+            ))
+        }
+        
     }
 
     /// GetTreeState returns the note commitment tree state corresponding to the given block.
