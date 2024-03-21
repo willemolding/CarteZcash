@@ -274,15 +274,10 @@ fn empty_coinbase_txn(height: Height) -> Transaction {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::hash::Hash;
-
     use super::*;
     use tower::buffer::Buffer;
     use tower::ServiceExt;
-    use zebra_chain::amount;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
-    use zebra_chain::serialization::ZcashDeserializeInto;
 
     // anything sent to this script can be spent by anyway. Useful for testing
     fn accepting() -> Script {
@@ -396,7 +391,7 @@ mod tests {
                 hash: b1.transactions[0].hash(),
                 index: 0,
             },
-            101.try_into().unwrap(),
+            100.try_into().unwrap(),
         );
 
         tinycash
