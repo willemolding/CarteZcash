@@ -5,9 +5,10 @@ use std::{
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
+    time::Duration,
 };
-use tower::{buffer::Buffer, Service, ServiceExt};
 use tower::util::BoxService;
+use tower::{buffer::Buffer, timeout::Timeout, Service, ServiceExt};
 
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -31,6 +32,8 @@ fn mt_doom() -> Script {
     Script::new(&[0])
 }
 
+const TX_VERIFY_TIMEOUT_SECS: u64 = 10;
+
 pub struct TinyCashWriteService<S, V> {
     state_service: S,
     tx_verifier_service: V,
@@ -45,25 +48,6 @@ impl<S, V> TinyCashWriteService<S, V> {
     }
 }
 
-// return a concrete implementation of the service
-pub fn init() -> TinyCashWriteService<
-    Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>,
-    tx::Verifier<Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>>
- > {
-    let network = Network::TinyCash;
-
-    let (state_service, _, _, _) = zebra_state::init(
-        zebra_state::Config::ephemeral(),
-        network,
-        block::Height::MAX,
-        0,
-    );
-    let state_service = Buffer::new(state_service, 1);
-    let verifier_service = tx::Verifier::new(network, state_service.clone());
-
-    TinyCashWriteService::new(state_service, verifier_service)
-}
-
 /// The request type for the TinyCash service
 pub enum Request {
     /// Add the genesis block to the state
@@ -71,7 +55,7 @@ pub enum Request {
     /// Form a coinbase transaction that mints the given amount and produce a new block that includes it
     Mint {
         amount: Amount<NonNegative>,
-        to: transparent::Address,
+        to: transparent::Script,
     },
     /// Produce a new block that includes the given transaction
     IncludeTransaction { transaction: Transaction },
@@ -79,8 +63,8 @@ pub enum Request {
 
 /// The response type for the TinyCash service
 pub struct Response {
-    /// Hash of the block that was added by this state transition
-    pub block_hash: block::Hash,
+    ///The block that was added by this state transition
+    pub block: block::Block,
     /// The amount of coins that were burned by the transaction (if any) by transferring to the Mt Doom address (0x000...000)
     pub burned: Amount<NonNegative>,
 }
@@ -119,7 +103,10 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let mut state_service = self.state_service.clone();
-        let mut transaction_verifier = self.tx_verifier_service.clone();
+        let mut transaction_verifier = Timeout::new(
+            self.tx_verifier_service.clone(),
+            Duration::from_secs(TX_VERIFY_TIMEOUT_SECS),
+        );
 
         async move {
             let (block, height, burned) = match req {
@@ -200,6 +187,7 @@ where
             // this logic mostly taken from zebra-consensus block verifier
             // https://github.com/ZcashFoundation/zebra/blob/main/zebra-consensus/src/block.rs
 
+            let ret = block.clone();
             let block_hash = block.hash();
             let transaction_hashes: Arc<[_]> =
                 block.transactions.iter().map(|t| t.hash()).collect();
@@ -256,7 +244,7 @@ where
             }
 
             // return the info about the new block
-            Ok(Response { block_hash, burned })
+            Ok(Response { block: ret, burned })
         }
         .boxed()
     }
@@ -265,13 +253,13 @@ where
 // create a new transparent v5 coinbase transaction that mints the given amount and sends it to the given address
 fn mint_coinbase_txn(
     amount: Amount<NonNegative>,
-    to: &transparent::Address,
+    to: &transparent::Script,
     height: Height,
 ) -> Transaction {
     Transaction::new_v5_coinbase(
         Network::TinyCash,
         height,
-        vec![(amount, to.create_script_from_address())],
+        vec![(amount, to.clone())],
         Vec::new(),
     )
 }
@@ -279,7 +267,7 @@ fn mint_coinbase_txn(
 fn empty_coinbase_txn(height: Height) -> Transaction {
     mint_coinbase_txn(
         Amount::zero(),
-        &transparent::Address::from_pub_key_hash(Network::TinyCash, [0; 20]),
+        &mt_doom(),
         height,
     )
 }
@@ -290,7 +278,11 @@ mod tests {
     use tower::buffer::Buffer;
     use tower::ServiceExt;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
-    use zebra_chain::transaction::arbitrary::fake_v5_transactions_for_network;
+
+    // anything sent to this script can be spent by anyway. Useful for testing
+    fn accepting() -> Script {
+        Script::new(&[1,1])
+    }
 
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
@@ -316,7 +308,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
-    // #[tracing_test::traced_test]
+    #[tracing_test::traced_test]
     async fn test_mint_txn() {
         let network = Network::TinyCash;
 
@@ -340,37 +332,25 @@ mod tests {
             .await
             .unwrap();
 
-        tinycash
-            .ready()
-            .await
-            .unwrap()
-            .call(Request::Mint {
-                amount: Amount::try_from(100).unwrap(),
-                to: transparent::Address::from_script_hash(network, [0; 20]),
-            })
-            .await
-            .expect("unexpected error response");
-
-        tinycash
-            .ready()
-            .await
-            .unwrap()
-            .call(Request::Mint {
-                amount: Amount::try_from(100).unwrap(),
-                to: transparent::Address::from_script_hash(network, [0; 20]),
-            })
-            .await
-            .expect("unexpected error response");
+        // write a bunch of blocks
+        for _ in 0..100 {
+            tinycash
+                .ready()
+                .await
+                .unwrap()
+                .call(Request::Mint {
+                    amount: Amount::try_from(100).unwrap(),
+                    to: accepting(),
+                })
+                .await
+                .expect("unexpected error response");
+        }
     }
 
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
     async fn test_include_transparent_transaction() {
         let network = Network::TinyCash;
-        let nu5 = NetworkUpgrade::Nu5;
-        let nu5_activation_height = nu5
-            .activation_height(network)
-            .expect("NU5 activation height is specified");
 
         let (state_service, _, _, _) = zebra_state::init(
             zebra_state::Config::ephemeral(),
@@ -393,108 +373,68 @@ mod tests {
             .await
             .unwrap();
 
-        for mut transaction in
-            fake_v5_transactions_for_network(network, zebra_test::vectors::MAINNET_BLOCKS.iter().skip(1))
-        {
-            println!("submitting transaction: {:?}", transaction);
+        let Response { block: b1, .. } = tinycash
+            .ready()
+            .await
+            .unwrap()
+            .call(Request::Mint {
+                amount: Amount::try_from(100).unwrap(),
+                to: accepting(),
+            })
+            .await
+            .expect("unexpected error response");
 
-            let expiry_height = transaction.expiry_height_mut();
-            *expiry_height = nu5_activation_height;
+        println!("b1: {:?}", b1);
 
-            tinycash
-                .ready()
-                .await
-                .unwrap()
-                .call(Request::IncludeTransaction { transaction })
-                .await
-                .expect("unexpected error response");
+        let tx = build_transaction_spending(
+            transparent::OutPoint {
+                hash: b1.transactions[0].hash(),
+                index: 0,
+            },
+            100.try_into().unwrap(),
+        );
+
+        tinycash
+            .ready()
+            .await
+            .unwrap()
+            .call(Request::IncludeTransaction { transaction: tx })
+            .await
+            .unwrap();
+    }
+
+    /// Given a `previous_outpoint` build a new transaction that should pass
+    fn build_transaction_spending(
+        previous_outpoint: transparent::OutPoint, // specifies how to find the UTXOs to spend
+        amount: Amount<NonNegative>,
+        // script_should_succeed: bool,
+    ) -> Transaction {
+        // A script with a single opcode that accepts the transaction (pushes true on the stack)
+        let accepting_script = transparent::Script::new(&[1, 1]);
+        // A script with a single opcode that rejects the transaction (OP_FALSE)
+        // let rejecting_script = transparent::Script::new(&[0]);
+
+        // Use the `previous_outpoint` as input
+        let input = transparent::Input::PrevOut {
+            outpoint: previous_outpoint,
+            unlock_script: accepting_script.clone(),
+            sequence: 0,
+        };
+
+        let output = transparent::Output {
+            value: amount,
+            lock_script: accepting_script,
+        };
+
+        Transaction::V5 {
+            inputs: vec![input],
+            outputs: vec![output],
+            lock_time: LockTime::Height(Height(0)),
+            expiry_height: Height(0),
+            sapling_shielded_data: None,
+            orchard_shielded_data: None,
+            network_upgrade: NetworkUpgrade::Nu5,
         }
     }
 
-    // // test verifyinga shielded transactio. This fails but I think it is supposed to because of the way I am building the proof..
-    // #[tokio::test(flavor = "multi_thread")]
-    // #[tracing_test::traced_test]
-    // async fn test_include_shielded_transaction() {
-    //     let network = Network::TinyCash;
-    //     let nu5 = NetworkUpgrade::Nu5;
-    //     let nu5_activation_height = nu5
-    //         .activation_height(network)
-    //         .expect("NU5 activation height is specified");
-
-    //     let (state_service, _, _, _) = zebra_state::init(
-    //         zebra_state::Config::ephemeral(),
-    //         network,
-    //         block::Height::MAX,
-    //         0,
-    //     );
-
-    //     let state_service = Buffer::new(state_service, 1);
-    //     let verifier_service = tx::Verifier::new(network, state_service.clone());
-
-    //     let tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
-
-    //     // These test vectors are generated by `generate_test_vectors()` function.
-    //     let shielded_data = zebra_test::vectors::ORCHARD_SHIELDED_DATA
-    //     .clone()
-    //     .iter()
-    //     .map(|bytes| {
-    //         let maybe_shielded_data: Option<zebra_chain::orchard::ShieldedData> = bytes
-    //             .zcash_deserialize_into()
-    //             .expect("a valid orchard::ShieldedData instance");
-    //         maybe_shielded_data.unwrap()
-    //     })
-    //     .next().unwrap();
-
-    //     let authorized_actions = shielded_data.actions[0].clone();
-
-    //     let mut transaction = transaction_v5_with_orchard_shielded_data(
-    //         shielded_data,
-    //         [authorized_actions],
-    //     );
-
-    //     let expiry_height = transaction.expiry_height_mut();
-    //     *expiry_height = nu5_activation_height;
-
-    //     tinycash
-    //         .oneshot(Request::IncludeTransaction { transaction })
-    //         .await
-    //         .expect("unexpected error response");
-    // }
-
-    // /// Return a `Transaction::V5` containing `orchard_shielded_data`.
-    // /// with its `AuthorizedAction`s replaced by `authorized_actions`.
-    // ///
-    // /// Other fields have empty or default values.
-    // ///
-    // /// # Panics
-    // ///
-    // /// If there are no `AuthorizedAction`s in `authorized_actions`.
-    // fn transaction_v5_with_orchard_shielded_data(
-    //     orchard_shielded_data: impl Into<Option<zebra_chain::orchard::ShieldedData>>,
-    //     authorized_actions: impl IntoIterator<Item = zebra_chain::orchard::AuthorizedAction>,
-    // ) -> Transaction {
-    //     let mut orchard_shielded_data = orchard_shielded_data.into();
-    //     let authorized_actions: Vec<_> = authorized_actions.into_iter().collect();
-
-    //     if let Some(ref mut orchard_shielded_data) = orchard_shielded_data {
-    //         // make sure there are no other nullifiers, by replacing all the authorized_actions
-    //         orchard_shielded_data.actions = authorized_actions.try_into().expect(
-    //             "unexpected invalid orchard::ShieldedData: must have at least one AuthorizedAction",
-    //         );
-
-    //         // set value balance to 0 to pass the chain value pool checks
-    //         let zero_amount = 0.try_into().expect("unexpected invalid zero amount");
-    //         orchard_shielded_data.value_balance = zero_amount;
-    //     }
-
-    //     Transaction::V5 {
-    //         network_upgrade: NetworkUpgrade::Nu5,
-    //         inputs: Vec::new(),
-    //         outputs: Vec::new(),
-    //         lock_time: LockTime::min_lock_time_timestamp(),
-    //         expiry_height: Height(0),
-    //         sapling_shielded_data: None,
-    //         orchard_shielded_data,
-    //     }
-    // }
-}
+ }

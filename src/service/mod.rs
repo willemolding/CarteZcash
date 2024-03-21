@@ -49,7 +49,7 @@ where
             let res = match req {
                 Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
                     tracing::info!("handling reposit request for amount {} to {}", amount, to);
-                    tiny_cash.ready().await?.call(tiny_cash::write::Request::Mint { amount, to })
+                    tiny_cash.ready().await?.call(tiny_cash::write::Request::Mint { amount, to: to.create_script_from_address() })
                 }
                 Request::AdvanceState(AdvanceStateRequest::Transact { txn }) => {
                     tracing::info!("handling transact request for txn {:?}", txn);
