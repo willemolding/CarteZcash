@@ -144,7 +144,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<TransparentAddressBlockFilter>,
     ) -> std::result::Result<tonic::Response<Self::GetTaddressTxidsStream>, tonic::Status> {
-        tracing::info!("get_taddress_txids called");
+        tracing::info!("get_taddress_txids called with {:?}", request);
 
         let request = request.into_inner();
         let address = transparent::Address::from_str(&request.address).unwrap();
