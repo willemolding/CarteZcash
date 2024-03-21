@@ -27,6 +27,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
+        tracing::info!("send_transaction called");
+
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
