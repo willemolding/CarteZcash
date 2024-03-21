@@ -457,6 +457,7 @@ dependencies = [
 name = "cartezcash-proxy"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "prost",
  "tokio",
  "tokio-stream",

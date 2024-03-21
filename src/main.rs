@@ -1,4 +1,6 @@
 use service::{CarteZcashService, Request, Response};
+use zebra_chain::amount::Amount;
+use zebra_chain::transparent::Script;
 use std::env;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 
@@ -28,7 +30,7 @@ async fn main() -> Result<(), anyhow::Error> {
         block::Height::MAX,
         0,
     );
-    let state_service = Buffer::new(state_service, 10);
+    let state_service = Buffer::new(state_service, 30);
     let verifier_service = tx::Verifier::new(network, state_service.clone());
 
     // run the proxy here
@@ -56,6 +58,17 @@ async fn main() -> Result<(), anyhow::Error> {
         .call(tiny_cash::write::Request::Genesis)
         .await
         .unwrap();
+
+        tinycash
+        .ready()
+        .await
+        .unwrap()
+        .call(tiny_cash::write::Request::Mint {
+            amount: Amount::try_from(100).unwrap(),
+            to: Script::new(&[1,1]),
+        })
+        .await
+        .expect("unexpected error response");
 
     let mut cartezcash =
         BoxService::new(CarteZcashService::new(tinycash));

@@ -1,10 +1,14 @@
+use prost::bytes::buf::Chain;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tower::buffer::Buffer;
 use tower::{Service, ServiceExt};
+use tracing_subscriber::fmt::format::Compact;
 use zebra_chain::block::Height;
+use zebra_chain::orchard::tree::SerializedTree;
 use zebra_state::{HashOrHeight, ReadResponse};
 
+use crate::conversions;
 use crate::proto::compact_formats::*;
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
 use crate::proto::service::*;
@@ -40,7 +44,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
     ) -> std::result::Result<tonic::Response<BlockId>, tonic::Status> {
         tracing::info!("get_latest_block called");
 
-        let res: zebra_state::ReadResponse = self.state_read_service
+        let res: zebra_state::ReadResponse = self
+            .state_read_service
             .clone()
             .ready()
             .await
@@ -68,9 +73,45 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeStream>, tonic::Status> {
-        tracing::info!("get_block_range called");
-        let (tx, rx) = mpsc::channel(4);
-        // todo: send the compact blocks into the tx end of the channel
+        tracing::info!("get_block_range called with: {:?} ", request);
+        let (tx, rx) = mpsc::channel(10);
+
+        let block_range = request.into_inner();
+        let mut state_read_service = self.state_read_service.clone();
+
+        for height in block_range.start.unwrap().height..=block_range.end.unwrap().height {
+            tracing::info!("fetching block at height: {}", height);
+            let res: zebra_state::ReadResponse = state_read_service
+                .ready()
+                .await
+                .unwrap()
+                .call(zebra_state::ReadRequest::Block(HashOrHeight::Height(
+                    Height(height.try_into().unwrap()),
+                )))
+                .await
+                .unwrap();
+
+            if let ReadResponse::Block(Some(block)) = res {
+                tracing::info!("got block: {:?}", block);
+                // TODO: actually get the chain metadata (tree sizes)
+                let compact_block = conversions::block_to_compact(
+                    &block,
+                    ChainMetadata {
+                        sapling_commitment_tree_size: 0,
+                        orchard_commitment_tree_size: 0,
+                    },
+                );
+                tx.send(Ok(compact_block)).await.unwrap();
+            } else {
+                tracing::info!("unexpected response");
+                tx.send(Err(tonic::Status::not_found(
+                    "Could not find the block in the state store",
+                )))
+                .await
+                .unwrap();
+            }
+        }
+
         Ok(tonic::Response::new(ReceiverStream::new(rx)))
     }
 
@@ -107,7 +148,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
         tracing::info!("get_tree_state called");
 
-        let res: zebra_state::ReadResponse = self.state_read_service
+        let res: zebra_state::ReadResponse = self
+            .state_read_service
             .clone()
             .ready()
             .await
@@ -118,11 +160,13 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             .await
             .unwrap();
 
-        if let ReadResponse::OrchardTree(res) = res {
+        let tree_bytes_hex = if let ReadResponse::OrchardTree(res) = res {
             tracing::info!("got orchard tree: {:?}", res);
+            hex::encode(SerializedTree::from(res).as_ref())
         } else {
             tracing::info!("unexpected response");
-        }
+            "".to_string()
+        };
 
         let time = 0;
         let hash = String::new();
@@ -130,13 +174,14 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
 
         // todo: do this properly
         let tree_state = TreeState {
-            sapling_tree: String::new(),
-            orchard_tree: String::new(),
+            sapling_tree: "".to_string(),
+            orchard_tree: tree_bytes_hex,
             network: "cartezecash".to_string(),
             height,
             hash,
             time,
         };
+        tracing::info!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
     }
 

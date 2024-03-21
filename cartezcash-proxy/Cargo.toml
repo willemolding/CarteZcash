@@ -18,3 +18,4 @@ zebra-state = { workspace = true, default-features = false, features = ["proptes
 zebra-test = { workspace = true, default-features = false }
 zebra-chain = { workspace = true, default-features = false, features = ["getblocktemplate-rpcs", "proptest-impl"] }
 tower = "0.4.13"
+hex = "0.4.3"
