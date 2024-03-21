@@ -7,8 +7,7 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-use tower::util::BoxService;
-use tower::{buffer::Buffer, timeout::Timeout, Service, ServiceExt};
+use tower::{timeout::Timeout, Service, ServiceExt};
 
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -17,11 +16,10 @@ use zebra_chain::{
     block::{Block, Header, Height},
     fmt::HexDebug,
     parameters::Network,
-    transaction::LockTime,
     transparent::Script,
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
-use zebra_chain::{block, serialization::ZcashDeserialize, transparent::GENESIS_COINBASE_DATA};
+use zebra_chain::{block, serialization::ZcashDeserialize};
 use zebra_consensus::transaction as tx;
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;

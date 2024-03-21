@@ -1,7 +1,9 @@
-use tokio_stream::wrappers::ReceiverStream;
 use tokio::sync::mpsc;
-use tower::util::BoxService;
+use tokio_stream::wrappers::ReceiverStream;
 use tower::buffer::Buffer;
+use tower::{Service, ServiceExt};
+use zebra_chain::block::Height;
+use zebra_state::{HashOrHeight, ReadResponse};
 
 use crate::proto::compact_formats::*;
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
@@ -25,7 +27,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     async fn get_latest_block(
@@ -33,11 +37,28 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<ChainSpec>,
     ) -> std::result::Result<tonic::Response<BlockId>, tonic::Status> {
         tracing::info!("get_latest_block called");
-        // TOOD: fetch this from the store
-        Ok(tonic::Response::new(BlockId {
-            hash: vec![],
-            height: 0,
-        }))
+
+        let res: zebra_state::ReadResponse = self.state_read_service
+            .clone()
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::Tip)
+            .await
+            .unwrap();
+
+        if let ReadResponse::Tip(Some((height, hash))) = res {
+            tracing::info!("returning tip: {:?}", res);
+            Ok(tonic::Response::new(BlockId {
+                hash: hash.0.to_vec(),
+                height: height.0 as u64,
+            }))
+        } else {
+            tracing::info!("unexpected response");
+            Err(tonic::Status::not_found(
+                "Could not find the latest block in the state store",
+            ))
+        }
     }
 
     /// Return a list of consecutive compact blocks
@@ -83,6 +104,23 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<BlockId>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
         tracing::info!("get_tree_state called");
+
+        let res: zebra_state::ReadResponse = self.state_read_service
+            .clone()
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(
+                Height(request.into_inner().height.try_into().unwrap()),
+            )))
+            .await
+            .unwrap();
+
+        if let ReadResponse::OrchardTree(res) = res {
+            tracing::info!("got orchard tree: {:?}", res);
+        } else {
+            tracing::info!("unexpected response");
+        }
 
         let time = 0;
         let hash = String::new();
@@ -141,10 +179,12 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
-        tracing::info!("get_mempool_stream called");
+        tracing::info!("get_mempool_stream called. Ignoring request");
         // let (tx, rx) = mpsc::channel(4);
         // TODO: Send the txiods into the tx end of the channel
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
         // Ok(tonic::Response::new(ReceiverStream::new(rx)))
     }
 
@@ -156,7 +196,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     /// Same as GetBlock except actions contain only nullifiers
@@ -167,7 +209,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     /// Server streaming response type for the GetBlockRangeNullifiers method.
@@ -179,21 +223,27 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeNullifiersStream>, tonic::Status>
     {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     async fn get_taddress_balance(
         &self,
         request: tonic::Request<AddressList>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     async fn get_taddress_balance_stream(
         &self,
         request: tonic::Request<tonic::Streaming<Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     /// Server streaming response type for the GetMempoolTx method.
@@ -212,14 +262,18 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Exclude>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolTxStream>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     async fn get_latest_tree_state(
         &self,
         request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
     /// Server streaming response type for the GetSubtreeRoots method.
     type GetSubtreeRootsStream = ReceiverStream<Result<SubtreeRoot, tonic::Status>>;
@@ -230,13 +284,17 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<GetSubtreeRootsArg>,
     ) -> std::result::Result<tonic::Response<Self::GetSubtreeRootsStream>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
     async fn get_address_utxos(
         &self,
         request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<GetAddressUtxosReplyList>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
     /// Server streaming response type for the GetAddressUtxosStream method.
     type GetAddressUtxosStreamStream = ReceiverStream<Result<GetAddressUtxosReply, tonic::Status>>;
@@ -246,7 +304,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<Self::GetAddressUtxosStreamStream>, tonic::Status>
     {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 
     /// Testing-only, requires lightwalletd --ping-very-insecure (do not enable in production)
@@ -254,6 +314,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Duration>,
     ) -> std::result::Result<tonic::Response<PingResponse>, tonic::Status> {
-        Err(tonic::Status::unimplemented("gRPC endpoint not supported for cartezcash"))
+        Err(tonic::Status::unimplemented(
+            "gRPC endpoint not supported for cartezcash",
+        ))
     }
 }
