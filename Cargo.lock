@@ -374,6 +374,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cartezcash-proxy"
+version = "0.1.0"
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
