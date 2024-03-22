@@ -140,7 +140,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<TxFilter>,
     ) -> std::result::Result<tonic::Response<RawTransaction>, tonic::Status> {
-        tracing::info!("get_transaction called");
+        tracing::info!("get_transaction called. Ignoring request");
         Ok(tonic::Response::new(RawTransaction {
             data: vec![],
             height: 0,
@@ -262,7 +262,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         let tree_state = TreeState {
             sapling_tree: "".to_string(),
             orchard_tree: tree_bytes_hex,
-            network: "cartezecash".to_string(),
+            network: "mainnet".to_string(),
             height: height.0 as u64,
             hash,
             time: 0,
@@ -329,6 +329,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
+        tracing::info!("get_block called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -342,6 +343,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
+        tracing::info!("get_block_nullifiers called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -355,7 +357,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeNullifiersStream>, tonic::Status>
-    {
+    {       
+        tracing::info!("get_block_range_nullifiers called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -365,6 +368,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<AddressList>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
+        tracing::info!("get_taddress_balance called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -374,6 +378,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<tonic::Streaming<Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
+        tracing::info!("get_taddress_balance_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -395,6 +400,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Exclude>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolTxStream>, tonic::Status> {
+        tracing::info!("get_mempool_tx called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -404,6 +410,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
+        tracing::info!("get_latest_tree_state called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -417,6 +424,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<GetSubtreeRootsArg>,
     ) -> std::result::Result<tonic::Response<Self::GetSubtreeRootsStream>, tonic::Status> {
+        tracing::info!("get_subtree_roots called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -425,6 +433,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<GetAddressUtxosReplyList>, tonic::Status> {
+        tracing::info!("get_address_utxos called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -437,6 +446,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<Self::GetAddressUtxosStreamStream>, tonic::Status>
     {
+        tracing::info!("get_address_utxos_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -447,6 +457,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Duration>,
     ) -> std::result::Result<tonic::Response<PingResponse>, tonic::Status> {
+        tracing::info!("ping called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))

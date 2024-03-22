@@ -14,6 +14,7 @@ TinyCash is ZCash but with the following changes:
 - Only a single fork allowed
 - UTXOs cannot be verified out-of-order
 - No miner rewards
+- Transaction fees not enforced
 
 TinyCash then runs inside the Cartesi machine to produce a fully functional rollup.
 

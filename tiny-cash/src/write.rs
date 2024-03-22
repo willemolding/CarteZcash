@@ -16,7 +16,6 @@ use zebra_chain::{
     block::{Block, Header, Height},
     fmt::HexDebug,
     parameters::Network,
-    transparent::Script,
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
@@ -26,8 +25,8 @@ pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 // outputs locked with this script are considered burned and can be released on L1
 // this script pushed false to the stack so funds can never be spent
-fn mt_doom() -> Script {
-    Script::new(&[0])
+pub fn mt_doom() -> transparent::Address {
+    transparent::Address::from_pub_key_hash(Network::Mainnet, [0; 20])
 }
 
 const TX_VERIFY_TIMEOUT_SECS: u64 = 30;
@@ -154,7 +153,7 @@ where
                             let burned = transaction
                                 .outputs()
                                 .iter()
-                                .filter(|output| output.lock_script == mt_doom())
+                                .filter(|output| output.lock_script == mt_doom().create_script_from_address())
                                 .map(|output| output.value)
                                 .reduce(|total, elem| (total + elem).expect("overflow"))
                                 .unwrap_or(Amount::zero());
@@ -264,7 +263,7 @@ fn mint_coinbase_txn(
 fn empty_coinbase_txn(height: Height) -> Transaction {
     mint_coinbase_txn(
         Amount::zero(),
-        &mt_doom(),
+        &mt_doom().create_script_from_address(),
         height,
     )
 }
@@ -276,9 +275,9 @@ mod tests {
     use super::*;
     use tower::{buffer::Buffer, util::BoxService};
     use tower::ServiceExt;
-    use zebra_chain::block::tests::generate::transaction;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
     use zebra_chain::transaction::LockTime;
+    use zebra_chain::transparent::Script;
 
     // anything sent to this script can be spent by anyway. Useful for testing
     fn accepting() -> Script {

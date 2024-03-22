@@ -18,6 +18,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    println!("Withdraw address is: {}", tiny_cash::write::mt_doom().to_string());
+
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
