@@ -3,12 +3,13 @@ set positional-arguments
 build:
     sunodo build
 
-
 run-local:
-    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner cargo run --target aarch64-apple-darwin
+    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner cargo run --release
 
 sunodo-nobackend:
     sunodo run --no-backend
+
+##### Interact with dApp via sunodo
 
 @deposit address amount:
     sunodo send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
@@ -16,8 +17,13 @@ sunodo-nobackend:
 @send txn_hex:
     sunodo send generic --input=$1 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
 
-check:
-    cargo check --target aarch64-apple-darwin
+##### wallet related commands
 
-test:
-    cargo test --target aarch64-apple-darwin
+install-wallet:
+    cargo install --git https://github.com/willemolding/zingolib --branch willem/tinycash --bin zingo-cli
+
+start-wallet:
+    zingo-cli --data-dir ./walletdata --server localhost:50051
+
+clear-wallet:
+    rm -rf ./walletdata
