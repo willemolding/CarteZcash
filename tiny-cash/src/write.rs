@@ -310,10 +310,10 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
-    async fn test_mint_txn() {
+    async fn test_mint_txns_update_balance() {
         let network = Network::TinyCash;
 
-        let (state_service, read_state_service, _, _) = zebra_state::init(
+        let (state_service, mut read_state_service, _, _) = zebra_state::init(
             zebra_state::Config::ephemeral(),
             network,
             block::Height::MAX,
@@ -342,19 +342,29 @@ mod tests {
                 .await
                 .unwrap()
                 .call(Request::Mint {
-                    amount: Amount::try_from(100).unwrap(),
+                    amount: Amount::try_from(1).unwrap(),
                     to: recipient.create_script_from_address(),
                 })
                 .await
                 .expect("unexpected error response");
         }
 
-        // check the account balance was updated
         let mut addresses = HashSet::new();
-        addresses.insert(recipient);
-        let res = read_state_service.oneshot(zebra_state::ReadRequest::AddressBalance(addresses)).await.unwrap();
+        addresses.insert(recipient);        // check the account balance was updated
+
+        // check the account balance was updatedz
+        let res = read_state_service.ready().await.unwrap().call(zebra_state::ReadRequest::AddressBalance(addresses.clone())).await.unwrap();
         println!("res: {:?}", res);
-        assert_eq!(res, zebra_state::ReadResponse::AddressBalance(Amount::try_from(10000).unwrap()));
+        assert_eq!(res, zebra_state::ReadResponse::AddressBalance(Amount::try_from(100).unwrap()));
+
+        // check all transactions were received
+        let res = read_state_service.ready().await.unwrap().call(zebra_state::ReadRequest::TransactionIdsByAddresses{ addresses, height_range: Height(0)..=Height(100) }).await.unwrap();
+        println!("res: {:?}", res);
+        if let zebra_state::ReadResponse::AddressesTransactionIds(transactions) = res {
+            assert_eq!(transactions.len(), 100);
+        } else {
+            panic!("unexpected response");
+        }
     }
 
     #[tokio::test(flavor = "multi_thread")]
