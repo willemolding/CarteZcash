@@ -27,6 +27,7 @@ zebra-consensus = { workspace = true }
 tiny-cash = { path = "tiny-cash" }
 cartezcash-proxy = { path = "cartezcash-proxy" }
 tonic = "0.11.0"
+ethabi = "18.0.0"
 
 [workspace]
 members = [ "cartezcash-proxy", "tiny-cash"]

@@ -1,3 +1,5 @@
+![Banner](./assets/banner.png)
+
 # CarteZcash
 
 CarteZcash takes Zcash and turns it into a Cartesi RollApp. Created for the 2024 Cartesi Hackathon.

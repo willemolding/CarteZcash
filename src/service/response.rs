@@ -37,3 +37,11 @@ impl Response {
         )
     }
 }
+
+fn encode_withdraw_voucher(dest: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
+    ethabi::encode(&[
+        ethabi::Token::Address(dest),
+        ethabi::Token::Uint(value),
+        ethabi::Token::Bytes(vec![]),
+    ])
+}
