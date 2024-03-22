@@ -8,10 +8,12 @@ CarteZcash takes parts of the [Zebra](https://github.com/ZcashFoundation/zebra) 
 
 TinyCash is ZCash but with the following changes:
 
-- Each block contains only a single coinbase transaction and one optional user transaction
-- No proof-of-work checks are performed
-- Coins aren't minted in every block
 - All network upgrades up to NU5 are applied in the first block
+- Each block contains only a single coinbase transaction and up to one user transaction
+- No checking of proof-of-work
+- Only a single fork allowed
+- UTXOs cannot be verified out-of-order
+- No miner rewards
 
 TinyCash then runs inside the Cartesi machine to produce a fully functional rollup.
 

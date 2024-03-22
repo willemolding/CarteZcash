@@ -156,24 +156,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
 
         let request = request.into_inner();
         let address = transparent::Address::from_str(&request.address).unwrap();
-        // this will be a mainnet address, translate to a tinycash network address
-        let address = match address {
-            transparent::Address::PayToPublicKeyHash {
-                pub_key_hash,
-                ..
-            } => transparent::Address::PayToPublicKeyHash {
-                network: Network::TinyCash,
-                pub_key_hash,
-            },
-            transparent::Address::PayToScriptHash {
-                script_hash,
-                ..
-            } => transparent::Address::PayToScriptHash {
-                network: Network::TinyCash,
-                script_hash,
-            },
-        };
-
+    
         let mut addresses = HashSet::new();
         addresses.insert(address);
 
@@ -287,7 +270,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             version: env!("CARGO_PKG_VERSION").to_string(),
             vendor: "Wollum".to_string(),
             taddr_support: true,
-            chain_name: "cartezcash".to_string(),
+            chain_name: "testnet".to_string(),
             sapling_activation_height: 0,
             consensus_branch_id: String::new(),
             block_height,
