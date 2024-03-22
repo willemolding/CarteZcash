@@ -1,8 +1,6 @@
 use service::{CarteZcashService, Request, Response};
 use std::env;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
-use zebra_chain::amount::Amount;
-use zebra_chain::transparent::Script;
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;

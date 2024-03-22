@@ -52,9 +52,9 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM base as builder
 COPY --from=planner /opt/cartesi/cartezcash/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json  --target riscv64gc-unknown-linux-gnu
 COPY . .
-RUN cargo build --release
+RUN cargo build --release  --target riscv64gc-unknown-linux-gnu
 
 ### final image is the dapp itself
 

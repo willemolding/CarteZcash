@@ -57,6 +57,42 @@ CarteZcash integrates with existing Zcash wallets via the [cartezcash-proxy](./c
 
 The proxy is essentially an indexer that runs the same program as the Cartesi machine but with additional data storage and interfaces. Having the proxy allows the program running in the Cartesi machine to aggressively prune old block data which is no longer needed for verification but wallets might need for updating their balance. It also avoids having to use the `inspect` HTTP API to retrieve state and allows for using GRPC instead.
 
+## Repo Structure
+
+The following components were developed as part of the hackathon and should be considered for judging
+
+### cartezcash crate (top level crate)
+
+This contains the top level logic of parsing AdvanceState responses and submtting them as requests to a `tiny-cash` service.
+
+### tiny-cash crate
+
+This crate exports a tower service through which requests can be made to make state transitions in the blockchain. It exposes a simple interface defined by the `Request` enum:
+
+```rust
+pub enum Request {
+    /// Add the genesis block to the state
+    Genesis,
+    /// Form a coinbase transaction that mints the given amount and produce a new block that includes it
+    Mint {
+        amount: Amount<NonNegative>,
+        to: transparent::Script,
+    },
+    /// Produce a new block that includes the given transaction
+    IncludeTransaction { transaction: Transaction },
+}
+```
+
+This service itself is created from two Zebra tower services. A state service and a transaction verifier service. The `TinyCashWriteService::call()` function is where the majority of the logic is contained.
+
+### cartezcash-proxy
+
+This is the translation layer that allows existing Zcash wallets to work (almost) seamlessly with CarteZcash. It exposes a GRPC server generated to match the `lightwalletd` protocol. Only the minimal methods required to use Zingo wallet are implemented.
+
+This service can be created directly from a `TinyCashWriteService` for running in local mode or using the `inspect` API for connecting to a running Cartesi node.
+
+> note that files in the `proto` directory were auto-generated from protobuf and do not need to be reviewed
+
 ## Challenges Faced
 
 ### Building for the Cartesi Machine
@@ -95,22 +131,63 @@ Another approach might be to use blobs or a separate DA service to store the tra
 - Currently there is an issue getting the wallets to display shielded balances correctly
 - Need to implementing the pruning of old blocks in the rollup so there isn't unbounded state growth
 
-## Building
+## Hackathon Reflection
 
-The project uses [just](https://github.com/casey/just) as a command runner. Please install that first.
+I anticipated that cramming the full Zcash client into the Cartesi machine was going to be the hardest part of this project but it turned out to be very simple. Aside from the initial build issues the client was able to run in the VM, including features such as caching the RocksDB to the filesystem, without any modifications.
+
+In particular I was skeptical if it would be able to verify the Halo2 ZK proofs required for shielded transactions. Not only did this work but it was only perhaps 50% slower than running the verifier natively! Once I made this discovery I was pretty confident at being able to get everything to work.
+
+The tooling from Sunodo was an absolutely pleasure to use and meant I was able to spend much less time setting up the build/test environment and spend a lot more time developing the core of the application in Rust.
+
+This same process could likely be applied to any blockchain state transition as a strategy to turn it into a rollup with maximum code reuse.
+
+---
+
+# Instructions
+
+## Pre-requisites
+
+- The project uses [just](https://github.com/casey/just) as a command runner. Please install that first
+- Building natively requires stable Rust and Cargo (tested version 1.76.0)
+- Running the demo requires Sunodo. See the [installation instructions](https://docs.sunodo.io/guide/introduction/installing)
+    - This requires Docker be installed and the Docker host up and running
+
+## Building
 
 Build with:
 
 ```shell
-just build
+just build # or sunodo build
 ```
 
 This cross-compiles for risvc using docker.
 
-Check with:
+## Running the Demo
+
+### Setup 
+
+#### No-backend Mode 
+
+This runs CarteZcash locally rather than inside the Cartesi machine. This is a bit faster and easier to debug.
+
+Start the Sunodo services (Anvil, cartesi node, subsquid, etc) with:
 
 ```shell
-just check
+sunodo-nobackend # or sunodo run --no-backend
+just run-local
 ```
 
-This does a native build without docker and should be much quicker for checking while developing.
+#### Cartesi Machine Mode
+
+If you want to see it running in the Cartesi machine for real then build and run with
+
+```shell
+sunodo build
+sunodo run
+```
+
+### Steps
+
+The remainder of the steps are the same regardless of mode.
+
+Start a local 
