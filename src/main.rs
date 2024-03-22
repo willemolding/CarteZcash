@@ -69,16 +69,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut status = Response::Accept { burned: 0 };
     loop {
-
-        if let Some(voucher_request) = status.voucher_request(&server_addr) {
-            println!("Sending voucher");
-            let response = client.request(voucher_request).await?;
-            println!("Received voucher status {}", response.status());
-        }
-
         println!("Sending finish");
         let response = client.request(status.host_request(&server_addr)).await?;
-        println!("Received finish status {}", response.status());
 
         if response.status() == hyper::StatusCode::ACCEPTED {
             println!("No pending rollup request, trying again");
@@ -92,6 +84,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
             status = cartezcash.call(dapp_request).await.map_err(|e| anyhow::anyhow!(e))?;
             println!("Tinycash returned status: {:?}", &status);
+
+            if let Some(voucher_request) = status.voucher_request(&server_addr, ethereum_types::Address::random(), ethereum_types::U256::from(888)) {
+                println!("Sending voucher");
+                let response = client.request(voucher_request).await?;
+                println!("Received voucher status {}, {:?}", response.status(), hyper::body::to_bytes(response).await?);
+            }
         }
     }
 }

@@ -22,11 +22,13 @@ impl Response {
 
     // the response may optionally include a voucher request to send to the host
     // e.g. if some coins were burned and some need to be released on L1
-    pub fn voucher_request(&self, server_addr: &str) -> Option<hyper::Request<hyper::Body>> {
+    pub fn voucher_request(&self, server_addr: &str, dest: ethereum_types::Address, value: ethereum_types::U256) -> Option<hyper::Request<hyper::Body>> {
+            
         let response = object!{
-            destination: "0x00",
-            payload: "0x00",
+            destination: format!("0x{}", hex::encode(dest.as_fixed_bytes())),
+            payload: format!("0x{}", hex::encode(ethabi::encode(&[ethabi::Token::Uint(value)]))),
         };
+        println!("Voucher request: {}", response.dump());
         Some(
             hyper::Request::builder()
                 .method(hyper::Method::POST)
@@ -38,10 +40,10 @@ impl Response {
     }
 }
 
-fn encode_withdraw_voucher(dest: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
-    ethabi::encode(&[
-        ethabi::Token::Address(dest),
-        ethabi::Token::Uint(value),
-        ethabi::Token::Bytes(vec![]),
-    ])
-}
+// fn encode_withdraw_voucher(dest: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
+//     ethabi::encode(&[
+//         ethabi::Token::Address(dest),
+//         ethabi::Token::Uint(value),
+//         ethabi::Token::Bytes(vec![]),
+//     ])
+// }
