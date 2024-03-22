@@ -1,5 +1,5 @@
-use std::future::Future;
 use futures_util::future::FutureExt;
+use std::future::Future;
 use std::pin::Pin;
 use tower::{Service, ServiceExt};
 
@@ -25,8 +25,7 @@ where
             tiny_cash::write::Request,
             Response = tiny_cash::write::Response,
             Error = tiny_cash::write::BoxError,
-        >
-        + Send
+        > + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,
@@ -49,18 +48,31 @@ where
             let res = match req {
                 Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
                     tracing::info!("handling reposit request for amount {} to {}", amount, to);
-                    tiny_cash.ready().await?.call(tiny_cash::write::Request::Mint { amount, to: to.create_script_from_address() })
+                    tiny_cash
+                        .ready()
+                        .await?
+                        .call(tiny_cash::write::Request::Mint {
+                            amount,
+                            to: to.create_script_from_address(),
+                        })
                 }
                 Request::AdvanceState(AdvanceStateRequest::Transact { txn }) => {
                     tracing::info!("handling transact request for txn {:?}", txn);
-                    tiny_cash.ready().await?.call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
+                    tiny_cash
+                        .ready()
+                        .await?
+                        .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                 }
                 Request::InspectState => {
                     tracing::info!("handling inspect state request");
                     todo!()
                 }
-            }.await;
-            res.map(|res| Response::Accept { burned: res.burned.into() })
-        }.boxed()
+            }
+            .await;
+            res.map(|res| Response::Accept {
+                burned: res.burned.into(),
+            })
+        }
+        .boxed()
     }
 }

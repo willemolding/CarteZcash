@@ -18,7 +18,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    println!("Withdraw address is: {}", tiny_cash::write::mt_doom().to_string());
+    println!(
+        "Withdraw address is: {}",
+        tiny_cash::write::mt_doom().to_string()
+    );
 
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
@@ -82,13 +85,24 @@ async fn main() -> Result<(), anyhow::Error> {
             let dapp_request = Request::try_from(req)?;
             println!("Parsed request: {:?}", dapp_request);
 
-            status = cartezcash.call(dapp_request).await.map_err(|e| anyhow::anyhow!(e))?;
+            status = cartezcash
+                .call(dapp_request)
+                .await
+                .map_err(|e| anyhow::anyhow!(e))?;
             println!("Tinycash returned status: {:?}", &status);
 
-            if let Some(voucher_request) = status.voucher_request(&server_addr, ethereum_types::Address::random(), ethereum_types::U256::from(888)) {
+            if let Some(voucher_request) = status.voucher_request(
+                &server_addr,
+                ethereum_types::Address::random(),
+                ethereum_types::U256::from(888),
+            ) {
                 println!("Sending voucher");
                 let response = client.request(voucher_request).await?;
-                println!("Received voucher status {}, {:?}", response.status(), hyper::body::to_bytes(response).await?);
+                println!(
+                    "Received voucher status {}, {:?}",
+                    response.status(),
+                    hyper::body::to_bytes(response).await?
+                );
             }
         }
     }

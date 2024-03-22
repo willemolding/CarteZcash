@@ -153,7 +153,9 @@ where
                             let burned = transaction
                                 .outputs()
                                 .iter()
-                                .filter(|output| output.lock_script == mt_doom().create_script_from_address())
+                                .filter(|output| {
+                                    output.lock_script == mt_doom().create_script_from_address()
+                                })
                                 .map(|output| output.value)
                                 .reduce(|total, elem| (total + elem).expect("overflow"))
                                 .unwrap_or(Amount::zero());
@@ -273,15 +275,15 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
-    use tower::{buffer::Buffer, util::BoxService};
     use tower::ServiceExt;
+    use tower::{buffer::Buffer, util::BoxService};
     use zebra_chain::parameters::{Network, NetworkUpgrade};
     use zebra_chain::transaction::LockTime;
     use zebra_chain::transparent::Script;
 
     // anything sent to this script can be spent by anyway. Useful for testing
     fn accepting() -> Script {
-        Script::new(&[1,1])
+        Script::new(&[1, 1])
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -332,7 +334,7 @@ mod tests {
             .await
             .unwrap();
 
-        let recipient = transparent::Address::from_pub_key_hash(Network::Mainnet, [2;20]);
+        let recipient = transparent::Address::from_pub_key_hash(Network::Mainnet, [2; 20]);
 
         // write a bunch of blocks
         for _ in 0..100 {
@@ -349,15 +351,33 @@ mod tests {
         }
 
         let mut addresses = HashSet::new();
-        addresses.insert(recipient);        // check the account balance was updated
+        addresses.insert(recipient); // check the account balance was updated
 
         // check the account balance was updatedz
-        let res = read_state_service.ready().await.unwrap().call(zebra_state::ReadRequest::AddressBalance(addresses.clone())).await.unwrap();
+        let res = read_state_service
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::AddressBalance(addresses.clone()))
+            .await
+            .unwrap();
         println!("res: {:?}", res);
-        assert_eq!(res, zebra_state::ReadResponse::AddressBalance(Amount::try_from(100).unwrap()));
+        assert_eq!(
+            res,
+            zebra_state::ReadResponse::AddressBalance(Amount::try_from(100).unwrap())
+        );
 
         // check all transactions were received
-        let res = read_state_service.ready().await.unwrap().call(zebra_state::ReadRequest::TransactionIdsByAddresses{ addresses, height_range: Height(0)..=Height(100) }).await.unwrap();
+        let res = read_state_service
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::TransactionIdsByAddresses {
+                addresses,
+                height_range: Height(0)..=Height(100),
+            })
+            .await
+            .unwrap();
         println!("res: {:?}", res);
         if let zebra_state::ReadResponse::AddressesTransactionIds(transactions) = res {
             assert_eq!(transactions.len(), 100);
@@ -455,5 +475,4 @@ mod tests {
             network_upgrade: NetworkUpgrade::Nu5,
         }
     }
-
- }
+}

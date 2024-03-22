@@ -22,7 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let state_read_service = Buffer::new(state_read_service, 10);
 
-    let svc = CompactTxStreamerServer::new(service_impl::CompactTxStreamerImpl { state_read_service });
+    let svc =
+        CompactTxStreamerServer::new(service_impl::CompactTxStreamerImpl { state_read_service });
 
     println!("Server listening on {}", addr);
     Server::builder()

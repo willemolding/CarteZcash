@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use zebra_chain::{block::Block, serialization::ZcashSerialize, transaction::Transaction};
 
-use crate::proto::compact_formats::{ChainMetadata, CompactBlock, CompactSaplingOutput, CompactSaplingSpend, CompactTx};
+use crate::proto::compact_formats::{
+    ChainMetadata, CompactBlock, CompactSaplingOutput, CompactSaplingSpend, CompactTx,
+};
 
 // Copied from https://github.com/ZcashFoundation/zebra/blob/4579722833a78843569e4419d0e5dbe6f4041c1b/zebra-scan/src/service/scan_task/scan.rs#L437
 // but had to be reimplemented here for our proto generated types
@@ -45,7 +47,6 @@ pub fn block_to_compact(block: &Block, chain_metadata: ChainMetadata) -> Compact
         proto_version: 0,
     }
 }
-
 
 /// Converts a zebra transaction into a compact transaction.
 fn transaction_to_compact((index, tx): (usize, Arc<Transaction>)) -> CompactTx {

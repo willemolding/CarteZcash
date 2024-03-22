@@ -1,5 +1,5 @@
-use json::JsonValue;
 use ethereum_types::U256;
+use json::JsonValue;
 
 use zebra_chain::amount::{Amount, NonNegative};
 use zebra_chain::serialization::ZcashDeserialize;
@@ -32,8 +32,13 @@ impl TryFrom<JsonValue> for Request {
 ///      or generic data message {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","epoch_index":0,"input_index":1,"block_number":122,"timestamp":1710913648},"payload":"0xffff"}}
 #[derive(Debug)]
 pub enum AdvanceStateRequest {
-    Deposit { amount: Amount<NonNegative>, to: Address },
-    Transact { txn: Transaction },
+    Deposit {
+        amount: Amount<NonNegative>,
+        to: Address,
+    },
+    Transact {
+        txn: Transaction,
+    },
 }
 
 const ETH_DEPOSIT_ADDR: &str = "0xffdbe43d4c855bf7e0f105c400a50857f53ab044";
@@ -59,12 +64,17 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 let bytes = hex::decode(hex.trim_start_matches("0x"))?;
 
                 let _sender = &bytes[0..20];
-                let value = U256::from_big_endian(&bytes[20..52]).checked_div(U256::try_from(10_000_000_000_u64).unwrap()).unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
+                let value = U256::from_big_endian(&bytes[20..52])
+                    .checked_div(U256::try_from(10_000_000_000_u64).unwrap())
+                    .unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
                 println!("Value: {:?}", value);
                 println!("Key bytes: {:?}", &bytes[52..]);
 
-                let dest_t_address = Address::from_pub_key_hash(zebra_chain::parameters::Network::Mainnet, bytes[52..].try_into().unwrap());
-                
+                let dest_t_address = Address::from_pub_key_hash(
+                    zebra_chain::parameters::Network::Mainnet,
+                    bytes[52..].try_into().unwrap(),
+                );
+
                 Ok(AdvanceStateRequest::Deposit {
                     amount: Amount::try_from(value.as_u64())?, // FIX: This is going to panic if too much eth is sent
                     to: dest_t_address,

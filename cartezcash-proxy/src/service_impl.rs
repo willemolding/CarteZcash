@@ -38,7 +38,10 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
         tracing::info!("send_transaction called");
 
-        println!("Raw transaction hex: {:?}", hex::encode(&request.get_ref().data));
+        println!(
+            "Raw transaction hex: {:?}",
+            hex::encode(&request.get_ref().data)
+        );
 
         Ok(tonic::Response::new(SendResponse {
             error_code: 0,
@@ -156,7 +159,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
 
         let request = request.into_inner();
         let address = transparent::Address::from_str(&request.address).unwrap();
-    
+
         let mut addresses = HashSet::new();
         addresses.insert(address);
 
@@ -228,7 +231,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             .ready()
             .await
             .unwrap()
-            .call(zebra_state::ReadRequest::Block(HashOrHeight::Height(height)))
+            .call(zebra_state::ReadRequest::Block(HashOrHeight::Height(
+                height,
+            )))
             .await
             .unwrap();
 
@@ -245,7 +250,9 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             .ready()
             .await
             .unwrap()
-            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(height)))
+            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(
+                height,
+            )))
             .await
             .unwrap();
 
@@ -256,7 +263,6 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             tracing::info!("unexpected response");
             "".to_string()
         };
-
 
         // todo: do this properly
         let tree_state = TreeState {
@@ -357,7 +363,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeNullifiersStream>, tonic::Status>
-    {       
+    {
         tracing::info!("get_block_range_nullifiers called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
