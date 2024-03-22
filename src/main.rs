@@ -65,21 +65,17 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .unwrap();
 
-    tinycash
-        .ready()
-        .await
-        .unwrap()
-        .call(tiny_cash::write::Request::Mint {
-            amount: Amount::try_from(100).unwrap(),
-            to: Script::new(&[1, 1]),
-        })
-        .await
-        .expect("unexpected error response");
-
     let mut cartezcash = BoxService::new(CarteZcashService::new(tinycash));
 
     let mut status = Response::Accept { burned: 0 };
     loop {
+
+        if let Some(voucher_request) = status.voucher_request(&server_addr) {
+            println!("Sending voucher");
+            let response = client.request(voucher_request).await?;
+            println!("Received voucher status {}", response.status());
+        }
+
         println!("Sending finish");
         let response = client.request(status.host_request(&server_addr)).await?;
         println!("Received finish status {}", response.status());
