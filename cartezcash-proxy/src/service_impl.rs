@@ -9,6 +9,7 @@ use tower::{Service, ServiceExt};
 use tracing_subscriber::fmt::format::Compact;
 use zebra_chain::block::Height;
 use zebra_chain::orchard::tree::SerializedTree;
+use zebra_chain::parameters::Network;
 use zebra_chain::transparent;
 use zebra_state::{HashOrHeight, IntoDisk, ReadResponse};
 
@@ -87,7 +88,11 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
 
         let start = std::cmp::min(a, b);
         let end = std::cmp::max(a, b);
-        let range = if a < b { (start..=end).collect::<Vec<u64>>() } else { (start..=end).rev().collect() };
+        let range = if a < b {
+            (start..=end).collect::<Vec<u64>>()
+        } else {
+            (start..=end).rev().collect()
+        };
 
         let mut state_read_service = self.state_read_service.clone();
 
@@ -148,11 +153,29 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
 
         let request = request.into_inner();
         let address = transparent::Address::from_str(&request.address).unwrap();
+        // this will be a mainnet address, translate to a tinycash network address
+        let address = match address {
+            transparent::Address::PayToPublicKeyHash {
+                pub_key_hash,
+                ..
+            } => transparent::Address::PayToPublicKeyHash {
+                network: Network::TinyCash,
+                pub_key_hash,
+            },
+            transparent::Address::PayToScriptHash {
+                script_hash,
+                ..
+            } => transparent::Address::PayToScriptHash {
+                network: Network::TinyCash,
+                script_hash,
+            },
+        };
+
         let mut addresses = HashSet::new();
         addresses.insert(address);
 
         let block_range = request.range.unwrap();
-        
+
         let mut state_read_service = self.state_read_service.clone();
 
         let res: zebra_state::ReadResponse = state_read_service
@@ -161,7 +184,8 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             .unwrap()
             .call(zebra_state::ReadRequest::TransactionIdsByAddresses {
                 addresses,
-                height_range: Height(block_range.start.unwrap().height as u32)..=Height(block_range.end.unwrap().height as u32),
+                height_range: Height(block_range.start.unwrap().height as u32)
+                    ..=Height(block_range.end.unwrap().height as u32),
             })
             .await
             .unwrap();
@@ -190,18 +214,14 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
                 } else {
                     tracing::info!("unexpected response");
                 }
-
-                
             }
             Ok(tonic::Response::new(ReceiverStream::new(rx)))
-
         } else {
             tracing::info!("unexpected response");
             Err(tonic::Status::unimplemented(
                 "unexpcted response from TransactionIdsByAddresses",
             ))
         }
-        
     }
 
     /// GetTreeState returns the note commitment tree state corresponding to the given block.
