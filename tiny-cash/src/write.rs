@@ -254,7 +254,7 @@ fn mint_coinbase_txn(
     height: Height,
 ) -> Transaction {
     Transaction::new_v5_coinbase(
-        Network::Testnet,
+        Network::Mainnet,
         height,
         vec![(amount, to.clone())],
         Vec::new(),
@@ -276,6 +276,7 @@ mod tests {
     use super::*;
     use tower::{buffer::Buffer, util::BoxService};
     use tower::ServiceExt;
+    use zebra_chain::block::tests::generate::transaction;
     use zebra_chain::parameters::{Network, NetworkUpgrade};
     use zebra_chain::transaction::LockTime;
 
@@ -287,7 +288,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
     async fn test_genesis() {
-        let network = Network::Testnet;
+        let network = Network::Mainnet;
 
         let (state_service, _, _, _) = zebra_state::init(
             zebra_state::Config::ephemeral(),
@@ -310,7 +311,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
     async fn test_mint_txns_update_balance() {
-        let network = Network::Testnet;
+        let network = Network::Mainnet;
 
         let (state_service, mut read_state_service, _, _) = zebra_state::init(
             zebra_state::Config::ephemeral(),
@@ -332,7 +333,7 @@ mod tests {
             .await
             .unwrap();
 
-        let recipient = transparent::Address::from_pub_key_hash(Network::Testnet, [2;20]);
+        let recipient = transparent::Address::from_pub_key_hash(Network::Mainnet, [2;20]);
 
         // write a bunch of blocks
         for _ in 0..100 {
@@ -369,7 +370,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     #[tracing_test::traced_test]
     async fn test_include_transparent_transaction() {
-        let network = Network::Testnet;
+        let network = Network::Mainnet;
 
         let (state_service, _, _, _) = zebra_state::init(
             zebra_state::Config::ephemeral(),
