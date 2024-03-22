@@ -30,7 +30,7 @@ fn mt_doom() -> Script {
     Script::new(&[0])
 }
 
-const TX_VERIFY_TIMEOUT_SECS: u64 = 10;
+const TX_VERIFY_TIMEOUT_SECS: u64 = 30;
 
 pub struct TinyCashWriteService<S, V> {
     state_service: S,
@@ -208,8 +208,7 @@ where
                             height,
                             time: block.header.time,
                         })
-                        .await
-                        .unwrap();
+                        .await?;
                 }
 
                 // contextually verify and commit the block

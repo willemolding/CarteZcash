@@ -92,7 +92,7 @@ async fn main() -> Result<(), anyhow::Error> {
             let dapp_request = Request::try_from(req)?;
             println!("Parsed request: {:?}", dapp_request);
 
-            status = cartezcash.call(dapp_request).await.unwrap();
+            status = cartezcash.call(dapp_request).await.map_err(|e| anyhow::anyhow!(e))?;
             println!("Tinycash returned status: {:?}", &status);
         }
     }

@@ -38,9 +38,12 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
         tracing::info!("send_transaction called");
 
-        Err(tonic::Status::unimplemented(
-            "gRPC endpoint not supported for cartezcash",
-        ))
+        println!("Raw transaction hex: {:?}", hex::encode(&request.get_ref().data));
+
+        Ok(tonic::Response::new(SendResponse {
+            error_code: 0,
+            error_message: "".to_string(),
+        }))
     }
 
     async fn get_latest_block(
@@ -312,7 +315,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
         &self,
         request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
-        tracing::info!("get_mempool_stream called. Ignoring request");
+        // tracing::info!("get_mempool_stream called. Ignoring request");
         // let (tx, rx) = mpsc::channel(4);
         // TODO: Send the txiods into the tx end of the channel
         Err(tonic::Status::unimplemented(
