@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (_, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
-        Network::Testnet,
+        Network::Mainnet,
         block::Height::MAX,
         0,
     );

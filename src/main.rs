@@ -21,7 +21,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let network = Network::Testnet;
+    let network = Network::Mainnet;
 
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),

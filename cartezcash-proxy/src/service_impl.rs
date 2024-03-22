@@ -220,15 +220,32 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
         tracing::info!("get_tree_state called");
 
-        let res: zebra_state::ReadResponse = self
-            .state_read_service
+        let mut read_service = self.state_read_service.clone();
+        let height: Height = Height(request.into_inner().height.try_into().unwrap());
+
+        // first get the block hash for the given height
+        let res: zebra_state::ReadResponse = read_service
+            .ready()
+            .await
+            .unwrap()
+            .call(zebra_state::ReadRequest::Block(HashOrHeight::Height(height)))
+            .await
+            .unwrap();
+
+        let hash = if let ReadResponse::Block(Some(block)) = res {
+            tracing::info!("got block: {:?}", block);
+            hex::encode(block.hash().0)
+        } else {
+            tracing::info!("unexpected response");
+            "".to_string()
+        };
+
+        let res: zebra_state::ReadResponse = read_service
             .clone()
             .ready()
             .await
             .unwrap()
-            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(
-                Height(request.into_inner().height.try_into().unwrap()),
-            )))
+            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(height)))
             .await
             .unwrap();
 
@@ -240,18 +257,15 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             "".to_string()
         };
 
-        let time = 0;
-        let hash = String::new();
-        let height = 0;
 
         // todo: do this properly
         let tree_state = TreeState {
             sapling_tree: "".to_string(),
             orchard_tree: tree_bytes_hex,
             network: "cartezecash".to_string(),
-            height,
+            height: height.0 as u64,
             hash,
-            time,
+            time: 0,
         };
         tracing::info!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
@@ -270,7 +284,7 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             version: env!("CARGO_PKG_VERSION").to_string(),
             vendor: "Wollum".to_string(),
             taddr_support: true,
-            chain_name: "testnet".to_string(),
+            chain_name: "mainnet".to_string(),
             sapling_activation_height: 0,
             consensus_branch_id: String::new(),
             block_height,
