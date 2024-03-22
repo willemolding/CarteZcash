@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::str::FromStr;
+use futures_util::future::TryFutureExt;
 
 use prost::bytes::buf::Chain;
 use tokio::sync::mpsc;
@@ -245,29 +246,45 @@ impl CompactTxStreamer for CompactTxStreamerImpl {
             "".to_string()
         };
 
-        let res: zebra_state::ReadResponse = read_service
-            .clone()
+        // the following taken and modified from https://github.com/ZcashFoundation/zebra/blob/f79fc6aa8eff0db98e8eae53194325188ee96915/zebra-rpc/src/methods.rs#L1102
+
+        let hash_or_height = HashOrHeight::Height(
+            height,
+        );
+
+        let sapling_request = zebra_state::ReadRequest::SaplingTree(hash_or_height);
+        let sapling_response = read_service
             .ready()
-            .await
-            .unwrap()
-            .call(zebra_state::ReadRequest::OrchardTree(HashOrHeight::Height(
-                height,
-            )))
+            .and_then(|service| service.call(sapling_request))
             .await
             .unwrap();
 
-        let tree_bytes_hex = if let ReadResponse::OrchardTree(res) = res {
-            tracing::info!("got orchard tree: {:?}", res);
-            hex::encode(SerializedTree::from(res).as_ref())
-        } else {
-            tracing::info!("unexpected response");
-            "".to_string()
+        let orchard_request = zebra_state::ReadRequest::OrchardTree(hash_or_height);
+        let orchard_response = read_service
+            .ready()
+            .and_then(|service| service.call(orchard_request))
+            .await
+            .unwrap();
+
+        let sapling_tree_hex = match sapling_response {
+            zebra_state::ReadResponse::SaplingTree(maybe_tree) => {
+                let tree = zebra_chain::sapling::tree::SerializedTree::from(maybe_tree);
+                hex::encode(tree)
+            }
+            _ => unreachable!("unmatched response to a sapling tree request"),
         };
 
-        // todo: do this properly
+        let orchard_tree_hex = match orchard_response {
+            zebra_state::ReadResponse::OrchardTree(maybe_tree) => {
+                let tree = zebra_chain::orchard::tree::SerializedTree::from(maybe_tree);
+                hex::encode(tree)
+            }
+            _ => unreachable!("unmatched response to an orchard tree request"),
+        };
+
         let tree_state = TreeState {
-            sapling_tree: "".to_string(),
-            orchard_tree: tree_bytes_hex,
+            sapling_tree: sapling_tree_hex,
+            orchard_tree: orchard_tree_hex,
             network: "mainnet".to_string(),
             height: height.0 as u64,
             hash,
