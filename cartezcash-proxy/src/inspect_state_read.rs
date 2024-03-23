@@ -40,7 +40,7 @@ impl tower::Service<zebra_state::ReadRequest> for InspectStateReader {
             .build()
             .unwrap();
 
-        tracing::info!("Sending inspect request: {}", uri);
+        // tracing::info!("Sending inspect request: {}", uri);
 
         async move {
             let request = hyper::Request::builder()
@@ -51,7 +51,7 @@ impl tower::Service<zebra_state::ReadRequest> for InspectStateReader {
             let response = client.request(request).await?;
             let body = hyper::body::to_bytes(response).await?;
 
-            tracing::info!("Inspect response: {:?}", body);
+            // tracing::info!("Inspect response: {:?}", body);
 
             // hacky - no error handling or anything here
             let utf = std::str::from_utf8(&body)?;

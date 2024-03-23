@@ -7,7 +7,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tower::{Service, ServiceExt};
 use zebra_chain::block::Height;
 use zebra_chain::transparent;
-use zebra_state::{HashOrHeight, IntoDisk, ReadResponse};
+use zebra_state::{FromDisk, HashOrHeight, IntoDisk, ReadResponse};
 
 use crate::conversions;
 use crate::proto::compact_formats::*;
@@ -121,25 +121,64 @@ where
                 .await
                 .unwrap();
 
-            if let ReadResponse::Block(Some(block)) = res {
-                tracing::info!("got block: {:?}", block);
-                // TODO: actually get the chain metadata (tree sizes)
-                let compact_block = conversions::block_to_compact(
-                    &block,
-                    ChainMetadata {
-                        sapling_commitment_tree_size: 0,
-                        orchard_commitment_tree_size: 0,
-                    },
-                );
-                tx.send(Ok(compact_block)).await.unwrap();
-            } else {
-                tracing::info!("unexpected response");
-                tx.send(Err(tonic::Status::not_found(
-                    "Could not find the block in the state store",
-                )))
+            let block = match res {
+                ReadResponse::Block(Some(block)) => block,
+                _ => {
+                    tracing::info!("unexpected response");
+                    return Err(tonic::Status::not_found(
+                        "Could not find the block in the state store",
+                    ));
+                }
+            };
+            let hash = block.hash();
+
+            // Sapling trees
+            //
+            // # Concurrency
+            //
+            // We look up by block hash so the hash, transaction IDs, and confirmations
+            // are consistent.
+            let request = zebra_state::ReadRequest::SaplingTree(hash.into());
+            let response = state_read_service
+                .ready()
+                .and_then(|service| service.call(request))
                 .await
                 .unwrap();
-            }
+
+            let sapling_commitment_tree_size = match response {
+                zebra_state::ReadResponse::SaplingTree(Some(nct)) => nct.count(),
+                zebra_state::ReadResponse::SaplingTree(None) => 0,
+                _ => unreachable!("unmatched response to a SaplingTree request"),
+            } as u32;
+
+            // Orchard trees
+            //
+            // # Concurrency
+            //
+            // We look up by block hash so the hash, transaction IDs, and confirmations
+            // are consistent.
+            let request = zebra_state::ReadRequest::OrchardTree(hash.into());
+            let response = state_read_service
+                .ready()
+                .and_then(|service| service.call(request))
+                .await
+                .unwrap();
+
+            let orchard_commitment_tree_size = match response {
+                zebra_state::ReadResponse::OrchardTree(Some(nct)) => nct.count(),
+                zebra_state::ReadResponse::OrchardTree(None) => 0,
+                _ => unreachable!("unmatched response to a OrchardTree request"),
+            } as u32;
+
+            let compact_block = conversions::block_to_compact(
+                &block,
+                ChainMetadata {
+                    sapling_commitment_tree_size,
+                    orchard_commitment_tree_size,
+                },
+            );
+            tracing::info!("sending block: {:?}", compact_block);
+            tx.send(Ok(compact_block)).await.unwrap();
         }
 
         Ok(tonic::Response::new(ReceiverStream::new(rx)))
@@ -150,11 +189,33 @@ where
         &self,
         request: tonic::Request<TxFilter>,
     ) -> std::result::Result<tonic::Response<RawTransaction>, tonic::Status> {
-        tracing::info!("get_transaction called. Ignoring request");
-        Ok(tonic::Response::new(RawTransaction {
-            data: vec![],
-            height: 0,
-        }))
+        tracing::info!("get_transaction called");
+        let mut state_read_service = self.state_read_service.clone();
+
+        let request = zebra_state::ReadRequest::Transaction(
+            zebra_chain::transaction::Hash::from_bytes(request.into_inner().hash),
+        );
+        let response = state_read_service
+                .ready()
+                .and_then(|service| service.call(request))
+                .await
+                .unwrap();
+        if let zebra_state::ReadResponse::Transaction(Some(transaction)) = response {
+            Ok(tonic::Response::new(RawTransaction {
+                data: transaction.tx.as_bytes(),
+                height: transaction.height.0 as u64,
+            }))
+        } else {
+            tracing::info!("unexpected response");
+            Err(tonic::Status::not_found(
+                "Could not find the transaction in the state store",
+            ))
+        }
+
+        // Ok(tonic::Response::new(RawTransaction {
+        //     data: vec![],
+        //     height: 0,
+        // }))
     }
 
     /// Return the txids corresponding to the given t-address within the given block range
@@ -233,7 +294,6 @@ where
         let mut read_service = self.state_read_service.clone();
         let height: Height = Height(request.into_inner().height.try_into().unwrap());
 
-        // first get the block hash for the given height
         let res: zebra_state::ReadResponse = read_service
             .ready()
             .await
@@ -244,13 +304,16 @@ where
             .await
             .unwrap();
 
-        let hash = if let ReadResponse::Block(Some(block)) = res {
-            tracing::info!("got block: {:?}", block);
-            hex::encode(block.hash().0)
-        } else {
-            tracing::info!("unexpected response");
-            "".to_string()
+        let block = match res {
+            ReadResponse::Block(Some(block)) => block,
+            _ => {
+                tracing::info!("unexpected response");
+                return Err(tonic::Status::not_found(
+                    "Could not find the block in the state store",
+                ));
+            }
         };
+        let hash = block.hash();
 
         // the following taken and modified from https://github.com/ZcashFoundation/zebra/blob/f79fc6aa8eff0db98e8eae53194325188ee96915/zebra-rpc/src/methods.rs#L1102
 
@@ -291,8 +354,8 @@ where
             orchard_tree: orchard_tree_hex,
             network: "mainnet".to_string(),
             height: height.0 as u64,
-            hash,
-            time: 0,
+            hash: hash.to_string(),
+            time: block.header.time.timestamp() as u32,
         };
         tracing::info!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
@@ -337,7 +400,7 @@ where
     /// This does get called by zingo but it seems ok with receiving an error
     async fn get_mempool_stream(
         &self,
-        request: tonic::Request<Empty>,
+        _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
         // tracing::info!("get_mempool_stream called. Ignoring request");
         // let (tx, rx) = mpsc::channel(4);
@@ -351,7 +414,7 @@ where
     /// Return the compact block corresponding to the given block identifier
     async fn get_block(
         &self,
-        request: tonic::Request<BlockId>,
+        _request: tonic::Request<BlockId>,
     ) -> std::result::Result<
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
@@ -365,7 +428,7 @@ where
     /// Same as GetBlock except actions contain only nullifiers
     async fn get_block_nullifiers(
         &self,
-        request: tonic::Request<BlockId>,
+        _request: tonic::Request<BlockId>,
     ) -> std::result::Result<
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
@@ -382,7 +445,7 @@ where
     /// Same as GetBlockRange except actions contain only nullifiers
     async fn get_block_range_nullifiers(
         &self,
-        request: tonic::Request<BlockRange>,
+        _request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeNullifiersStream>, tonic::Status>
     {
         tracing::info!("get_block_range_nullifiers called. Ignoring request");
@@ -393,7 +456,7 @@ where
 
     async fn get_taddress_balance(
         &self,
-        request: tonic::Request<AddressList>,
+        _request: tonic::Request<AddressList>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
         tracing::info!("get_taddress_balance called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -403,7 +466,7 @@ where
 
     async fn get_taddress_balance_stream(
         &self,
-        request: tonic::Request<tonic::Streaming<Address>>,
+        _request: tonic::Request<tonic::Streaming<Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
         tracing::info!("get_taddress_balance_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -425,7 +488,7 @@ where
     /// in the exclude list that don't exist in the mempool are ignored.
     async fn get_mempool_tx(
         &self,
-        request: tonic::Request<Exclude>,
+        _request: tonic::Request<Exclude>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolTxStream>, tonic::Status> {
         tracing::info!("get_mempool_tx called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -435,7 +498,7 @@ where
 
     async fn get_latest_tree_state(
         &self,
-        request: tonic::Request<Empty>,
+        _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
         tracing::info!("get_latest_tree_state called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -449,7 +512,7 @@ where
     /// note commitment trees.
     async fn get_subtree_roots(
         &self,
-        request: tonic::Request<GetSubtreeRootsArg>,
+        _request: tonic::Request<GetSubtreeRootsArg>,
     ) -> std::result::Result<tonic::Response<Self::GetSubtreeRootsStream>, tonic::Status> {
         tracing::info!("get_subtree_roots called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -458,7 +521,7 @@ where
     }
     async fn get_address_utxos(
         &self,
-        request: tonic::Request<GetAddressUtxosArg>,
+        _request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<GetAddressUtxosReplyList>, tonic::Status> {
         tracing::info!("get_address_utxos called. Ignoring request");
         Err(tonic::Status::unimplemented(
@@ -470,7 +533,7 @@ where
 
     async fn get_address_utxos_stream(
         &self,
-        request: tonic::Request<GetAddressUtxosArg>,
+        _request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<Self::GetAddressUtxosStreamStream>, tonic::Status>
     {
         tracing::info!("get_address_utxos_stream called. Ignoring request");
@@ -482,7 +545,7 @@ where
     /// Testing-only, requires lightwalletd --ping-very-insecure (do not enable in production)
     async fn ping(
         &self,
-        request: tonic::Request<Duration>,
+        _request: tonic::Request<Duration>,
     ) -> std::result::Result<tonic::Response<PingResponse>, tonic::Status> {
         tracing::info!("ping called. Ignoring request");
         Err(tonic::Status::unimplemented(
