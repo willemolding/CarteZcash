@@ -455,7 +455,6 @@ dependencies = [
  "json",
  "tiny-cash",
  "tokio",
- "tonic",
  "tower",
  "tracing",
  "tracing-subscriber",

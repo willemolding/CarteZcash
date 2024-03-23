@@ -1,31 +1,29 @@
-use service::{CarteZcashService, Request, Response};
 use std::env;
+use service::{CarteZcashService, Request, Response};
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
 use zebra_state;
 
-use cartezcash_proxy::proto::service::compact_tx_streamer_server::CompactTxStreamerServer;
-use cartezcash_proxy::service_impl::CompactTxStreamerImpl;
-
 mod service;
 
-#[tokio::main(flavor = "multi_thread")]
+#[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    let network = Network::Mainnet;
+
     println!(
         "Withdraw address is: {}",
-        tiny_cash::write::mt_doom().to_string()
+        tiny_cash::mt_doom().to_string()
     );
 
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let network = Network::Mainnet;
-
+    // set up the services needed to run the rollup
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
         network,
@@ -34,20 +32,6 @@ async fn main() -> Result<(), anyhow::Error> {
     );
     let state_service = Buffer::new(state_service, 30);
     let verifier_service = tx::Verifier::new(network, state_service.clone());
-
-    // run the proxy here
-    // TODO: Put this behind a feature flag, it is for testing only
-
-    // let state_read_service = Buffer::new(state_read_service, 10);
-    // let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
-    // let addr = "[::1]:50051".parse()?;
-    // println!("Server listening on {}", addr);
-    // let grpc_server = tonic::transport::Server::builder()
-    //     .trace_fn(|_| tracing::info_span!("cartezcash-proxy"))
-    //     .add_service(svc)
-    //     .serve(addr);
-    // tokio::spawn(grpc_server);
-
     let mut tinycash = Buffer::new(
         BoxService::new(tiny_cash::write::TinyCashWriteService::new(
             state_service,
@@ -56,6 +40,7 @@ async fn main() -> Result<(), anyhow::Error> {
         10,
     );
 
+    // mine the genesis block
     tinycash
         .ready()
         .await
