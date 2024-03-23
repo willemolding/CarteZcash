@@ -6,6 +6,8 @@ use zebra_chain::parameters::Network;
 
 mod proto;
 mod service_impl;
+mod conversions;
+mod inspect_state_read;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

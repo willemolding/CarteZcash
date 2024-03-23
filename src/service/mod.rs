@@ -63,7 +63,7 @@ where
                         .await?
                         .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                 }
-                Request::InspectState => {
+                Request::InspectState(request) => {
                     tracing::info!("handling inspect state request");
                     todo!()
                 }

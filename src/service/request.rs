@@ -9,7 +9,7 @@ use zebra_chain::transparent::Address;
 #[derive(Debug)]
 pub enum Request {
     AdvanceState(AdvanceStateRequest),
-    InspectState,
+    InspectState(zebra_state::Request),
 }
 
 impl TryFrom<JsonValue> for Request {
@@ -21,7 +21,7 @@ impl TryFrom<JsonValue> for Request {
                 let advance_state = AdvanceStateRequest::try_from(req)?;
                 Ok(Request::AdvanceState(advance_state))
             }
-            Some("inspect_state") => Ok(Request::InspectState),
+            // Some("inspect_state") => Ok(Request::InspectState),
             _ => anyhow::bail!("Invalid request type"),
         }
     }

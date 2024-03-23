@@ -2,15 +2,11 @@ use std::collections::HashSet;
 use std::str::FromStr;
 use futures_util::future::TryFutureExt;
 
-use prost::bytes::buf::Chain;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tower::buffer::Buffer;
 use tower::{Service, ServiceExt};
-use tracing_subscriber::fmt::format::Compact;
 use zebra_chain::block::Height;
-use zebra_chain::orchard::tree::SerializedTree;
-use zebra_chain::parameters::Network;
 use zebra_chain::transparent;
 use zebra_state::{HashOrHeight, IntoDisk, ReadResponse};
 
