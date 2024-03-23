@@ -193,7 +193,7 @@ where
         let mut state_read_service = self.state_read_service.clone();
 
         let request = zebra_state::ReadRequest::Transaction(
-            zebra_chain::transaction::Hash::from_bytes(request.into_inner().hash),
+            zebra_chain::transaction::Hash::from_bytes_in_display_order(&request.into_inner().hash.try_into().unwrap()),
         );
         let response = state_read_service
                 .ready()
@@ -211,11 +211,6 @@ where
                 "Could not find the transaction in the state store",
             ))
         }
-
-        // Ok(tonic::Response::new(RawTransaction {
-        //     data: vec![],
-        //     height: 0,
-        // }))
     }
 
     /// Return the txids corresponding to the given t-address within the given block range

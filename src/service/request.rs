@@ -48,6 +48,7 @@ pub enum AdvanceStateRequest {
         to: Address,
     },
     Transact {
+        withdraw_address: ethereum_types::Address,
         txn: Transaction,
     },
 }
@@ -92,12 +93,20 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 })
             }
             Some(INBOX_CONTRACT_ADDR) => {
+                /* Encoding
+                abi.encodePacked(
+                    withdraw address, // 20B
+                    transaction bytes // arbitrary size
+                 */
                 let hex = req["data"]["payload"].as_str().unwrap();
                 let bytes = hex::decode(hex.trim_start_matches("0x"))?;
+
+                let withdraw_address = ethereum_types::Address::from_slice(bytes[0..20].try_into().unwrap());
+
                 let txn = zebra_chain::transaction::Transaction::zcash_deserialize(
-                    &mut bytes.as_slice(),
+                    &bytes[20..],
                 )?;
-                Ok(AdvanceStateRequest::Transact { txn })
+                Ok(AdvanceStateRequest::Transact { withdraw_address, txn })
             }
             _ => anyhow::bail!("unrecognised sender"),
         }

@@ -73,7 +73,7 @@ where
                             burned: res.burned.into(),
                         })
                 }
-                Request::AdvanceState(AdvanceStateRequest::Transact { txn }) => {
+                Request::AdvanceState(AdvanceStateRequest::Transact { txn, .. }) => {
                     tracing::info!("handling transact request for txn {:?}", txn);
                     tiny_cash
                         .ready()

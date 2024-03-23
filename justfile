@@ -15,7 +15,11 @@ sunodo-nobackend:
     sunodo send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
 
 @send txn_hex:
-    sunodo send generic --input=$1 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+   just withdraw 0x0000000000000000000000000000000000000000 $1
+
+@withdraw address txn_hex:
+    sunodo send generic --input="$1$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+
 
 ##### wallet related commands
 

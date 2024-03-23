@@ -1,8 +1,8 @@
 use service::{CarteZcashService, Request, Response};
-use std::env;
+use std::{env, str::FromStr};
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 
-use zebra_chain::{block, parameters::Network};
+use zebra_chain::{amount::Amount, block, parameters::Network, serialization::ZcashDeserialize};
 use zebra_consensus::transaction as tx;
 
 mod service;
@@ -36,14 +36,7 @@ async fn main() -> Result<(), anyhow::Error> {
         10,
     );
 
-    // mine the genesis block
-    tinycash
-        .ready()
-        .await
-        .unwrap()
-        .call(tiny_cash::write::Request::Genesis)
-        .await
-        .unwrap();
+    initialize_network(&mut tinycash).await?;
 
     let mut cartezcash = BoxService::new(CarteZcashService::new(tinycash, state_read_service));
 
@@ -77,4 +70,27 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     }
+}
+
+async fn initialize_network<S>(tinycash: &mut S) -> Result<(), anyhow::Error>
+where
+    S: Service<
+            tiny_cash::write::Request,
+            Response = tiny_cash::write::Response,
+            Error = tiny_cash::write::BoxError,
+        > + Send
+        + Clone
+        + 'static,
+    S::Future: Send + 'static,
+{
+    // Mine the genesis block
+    tinycash
+        .ready()
+        .await
+        .unwrap()
+        .call(tiny_cash::write::Request::Genesis)
+        .await
+        .unwrap();
+
+    Ok(())
 }

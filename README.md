@@ -23,7 +23,6 @@ TinyCash is Zcash but with the following changes:
 - All network upgrades up to NU5 are applied in the first block
 - Each block contains only a single coinbase transaction and up to one user transaction
 - No checking of proof-of-work
-- UTXOs cannot be verified out-of-order
 - No miner rewards
 - Transaction fees not enforced
 
@@ -106,7 +105,7 @@ With these patches in place and some minor modifications to the docker image for
 
 ### Modifications to Zcash
 
-The goal was to make as few modifications to the exiting Zcash client as possible. The requires changes can be seen 
+The goal was to make as few modifications to the exiting Zcash client as possible. The required changes can be seen 
 
 - https://github.com/ZcashFoundation/zebra/compare/main...willemolding:zebra:willem/tinycash
 
@@ -128,8 +127,7 @@ Another approach might be to use blobs or a separate DA service to store the tra
 
 ### Outstanding Issues
 
-- Currently there is an issue getting the wallets to display shielded balances correctly
-- Need to implementing the pruning of old blocks in the rollup so there isn't unbounded state growth
+Currently the blockchain state and history is stored in the cartesi machine meaning eventually the data storage requirements will grow too large to continue. A more sustainable approach is to prune old blocks, checkpoint commitments to the state on L1, and have an off-chain indexer that can reproduce the state to assist wallets in producing transaction proofs. It is definitely possible to have a rollup that could run indefinitely but it requires major changes to wallets and the blockchain node and is outside the scope of this project.
 
 ## Hackathon Reflection
 

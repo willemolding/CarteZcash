@@ -22,8 +22,6 @@ impl Response {
             .uri(format!("{}/{}", server_addr, route))
             .body(hyper::Body::from(body.dump()))
             .unwrap();
-
-        tracing::info!("Sending request: {:?}", request);
         request
     }
 
@@ -67,7 +65,6 @@ impl Response {
                 let response = object! {
                     payload: format!("0x{}", hex::encode(payload)),
                 };
-                println!("Report request: {}", response.dump());
                 Some(
                     hyper::Request::builder()
                         .method(hyper::Method::POST)
