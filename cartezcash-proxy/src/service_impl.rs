@@ -16,12 +16,16 @@ use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
 use crate::proto::service::*;
 
 #[derive(Clone)]
-pub struct CompactTxStreamerImpl {
-    pub state_read_service: Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
+pub struct CompactTxStreamerImpl<R> {
+    pub state_read_service: R//Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
 }
 
 #[tonic::async_trait]
-impl CompactTxStreamer for CompactTxStreamerImpl {
+impl<R> CompactTxStreamer for CompactTxStreamerImpl<R>
+    where 
+        R: Service<zebra_state::ReadRequest, Response = zebra_state::ReadResponse, Error = zebra_state::BoxError> + Send + Sync + Clone + 'static,
+        R::Future: Send + 'static
+{
     /// Server streaming response type for the GetBlockRange method.
     type GetBlockRangeStream = ReceiverStream<Result<CompactBlock, tonic::Status>>;
 

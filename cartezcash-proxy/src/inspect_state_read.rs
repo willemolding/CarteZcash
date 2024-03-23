@@ -5,7 +5,7 @@ use std::{net::SocketAddr, pin::Pin};
 use futures_util::{Future, FutureExt};
 use hyper::body::Buf;
 
-struct InspectStateReader(SocketAddr);
+pub struct InspectStateReader(SocketAddr);
 
 impl InspectStateReader {
     pub fn new(addr: SocketAddr) -> Self {
