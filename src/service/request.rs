@@ -32,7 +32,7 @@ impl TryFrom<JsonValue> for Request {
                 } else {
                     anyhow::bail!("No payload in response")
                 }
-            },
+            }
             _ => anyhow::bail!("Invalid request type"),
         }
     }
@@ -76,7 +76,7 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
 
                 let _sender = &bytes[0..20];
                 let value = U256::from_big_endian(&bytes[20..52])
-                    .checked_div(U256::try_from(10_000_000_000_u64).unwrap())
+                    .checked_div(U256::from(10_000_000_000_u64))
                     .unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
                 println!("Value: {:?}", value);
                 println!("Key bytes: {:?}", &bytes[52..]);

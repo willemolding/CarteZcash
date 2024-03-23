@@ -58,13 +58,12 @@ impl tower::Service<zebra_state::ReadRequest> for InspectStateReader {
             let resp_json = json::parse(utf)?;
             if let Some(hex) = resp_json["reports"][0]["payload"].as_str() {
                 let bytes = hex::decode(hex.trim_start_matches("0x"))?;
-            
+
                 let state_query_response = ciborium::from_reader(bytes.as_slice()).unwrap();
                 Ok(state_query_response)
             } else {
                 Err(zebra_state::BoxError::from("No payload in response"))
             }
-
         }
         .boxed()
     }

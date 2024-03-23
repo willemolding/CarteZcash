@@ -1,8 +1,8 @@
 use zebra_chain::{parameters::Network, transparent};
 
-pub mod write;
 #[cfg(test)]
 mod test;
+pub mod write;
 
 // outputs locked with this script are considered burned and can be released on L1
 // this script pushed false to the stack so funds can never be spent

@@ -1,10 +1,9 @@
-use std::env;
 use service::{CarteZcashService, Request, Response};
+use std::env;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
-use zebra_state;
 
 mod service;
 
@@ -15,10 +14,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let network = Network::Mainnet;
 
-    println!(
-        "Withdraw address is: {}",
-        tiny_cash::mt_doom().to_string()
-    );
+    println!("Withdraw address is: {}", tiny_cash::mt_doom());
 
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
@@ -72,9 +68,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 .map_err(|e| anyhow::anyhow!(e))?;
             println!("Tinycash returned status: {:?}", &status);
 
-            if let Some(report_request) = status.report_request(
-                &server_addr,
-            ) {
+            if let Some(report_request) = status.report_request(&server_addr) {
                 println!("Sending report");
                 let response = client.request(report_request).await?;
                 println!(

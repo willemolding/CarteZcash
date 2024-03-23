@@ -12,8 +12,8 @@ use tower::Service;
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
 use zebra_chain::{
-    block,
     amount::{Amount, NonNegative},
+    block,
     block::Height,
 };
 use zebra_consensus::transaction as tx;
@@ -37,8 +37,7 @@ async fn test_genesis() {
     let state_service = Buffer::new(state_service, 1);
     let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash =
-        BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
     tinycash
         .call(Request::Genesis)
@@ -60,8 +59,7 @@ async fn test_mint_txns_update_balance() {
     let state_service = Buffer::new(state_service, 10);
     let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash =
-        BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
     tinycash
         .ready()
@@ -138,8 +136,7 @@ async fn test_include_transparent_transaction() {
     let state_service = Buffer::new(state_service, 10);
     let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash =
-        BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
 
     tinycash
         .ready()
@@ -212,4 +209,3 @@ fn build_transaction_spending(
         network_upgrade: NetworkUpgrade::Nu5,
     }
 }
-

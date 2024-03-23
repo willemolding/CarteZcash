@@ -1,11 +1,11 @@
+use chrono::{DateTime, Utc};
+use futures_util::future::FutureExt;
 use std::{
     future::Future,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
-use chrono::{DateTime, Utc};
-use futures_util::future::FutureExt;
 use tower::{Service, ServiceExt};
 
 use zebra_chain::transaction::Transaction;
@@ -189,7 +189,7 @@ where
             if height > Height(0) {
                 // verify the transactions
                 for transaction in &transactions {
-                    let rsp = transaction_verifier
+                    transaction_verifier
                         .ready()
                         .await
                         .expect("transaction verifier is always ready")

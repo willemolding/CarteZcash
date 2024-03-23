@@ -9,7 +9,9 @@ pub enum Response {
 impl Response {
     pub fn host_request(&self, server_addr: &str) -> hyper::Request<hyper::Body> {
         let (route, body) = match self {
-            Response::Accept { .. } | Response::Report { .. } => ("finish", object! { "status" => "accept" }),
+            Response::Accept { .. } | Response::Report { .. } => {
+                ("finish", object! { "status" => "accept" })
+            }
             Response::Reject => ("finish", object! {"status" => "reject"}),
         };
 
@@ -22,7 +24,6 @@ impl Response {
 
         tracing::info!("Sending request: {:?}", request);
         request
-
     }
 
     // the response may optionally include a voucher request to send to the host
@@ -33,7 +34,6 @@ impl Response {
         dest: ethereum_types::Address,
         value: ethereum_types::U256,
     ) -> Option<hyper::Request<hyper::Body>> {
-
         match self {
             Response::Accept { burned } => {
                 if *burned == 0 {
@@ -59,15 +59,9 @@ impl Response {
         )
     }
 
-    pub fn report_request(
-        &self,
-        server_addr: &str,
-    ) -> Option<hyper::Request<hyper::Body>> {
-
+    pub fn report_request(&self, server_addr: &str) -> Option<hyper::Request<hyper::Body>> {
         match self {
-            Response::Accept { .. } | Response::Reject => {
-                None
-            }
+            Response::Accept { .. } | Response::Reject => None,
             Response::Report { payload } => {
                 let response = object! {
                     payload: format!("0x{}", hex::encode(payload)),
@@ -81,7 +75,7 @@ impl Response {
                         .body(hyper::Body::from(response.dump()))
                         .unwrap(),
                 )
-            },
+            }
         }
     }
 }

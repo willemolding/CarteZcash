@@ -4,10 +4,10 @@ use tower::buffer::Buffer;
 use zebra_chain::block;
 use zebra_chain::parameters::Network;
 
-mod proto;
-mod service_impl;
 mod conversions;
 mod inspect_state_read;
+mod proto;
+mod service_impl;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

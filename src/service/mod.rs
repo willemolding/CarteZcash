@@ -94,9 +94,7 @@ where
                         .map(|res| {
                             let mut payload = Vec::new();
                             ciborium::into_writer(&res, &mut payload).unwrap();
-                            Response::Report {
-                                payload: payload,
-                            }
+                            Response::Report { payload }
                         })
                 }
             }

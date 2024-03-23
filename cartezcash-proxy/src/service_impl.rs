@@ -1,6 +1,6 @@
+use futures_util::future::TryFutureExt;
 use std::collections::HashSet;
 use std::str::FromStr;
-use futures_util::future::TryFutureExt;
 
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -17,14 +17,21 @@ use crate::proto::service::*;
 
 #[derive(Clone)]
 pub struct CompactTxStreamerImpl<R> {
-    pub state_read_service: R//Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
+    pub state_read_service: R, //Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
 }
 
 #[tonic::async_trait]
 impl<R> CompactTxStreamer for CompactTxStreamerImpl<R>
-    where 
-        R: Service<zebra_state::ReadRequest, Response = zebra_state::ReadResponse, Error = zebra_state::BoxError> + Send + Sync + Clone + 'static,
-        R::Future: Send + 'static
+where
+    R: Service<
+            zebra_state::ReadRequest,
+            Response = zebra_state::ReadResponse,
+            Error = zebra_state::BoxError,
+        > + Send
+        + Sync
+        + Clone
+        + 'static,
+    R::Future: Send + 'static,
 {
     /// Server streaming response type for the GetBlockRange method.
     type GetBlockRangeStream = ReceiverStream<Result<CompactBlock, tonic::Status>>;
@@ -248,9 +255,7 @@ impl<R> CompactTxStreamer for CompactTxStreamerImpl<R>
 
         // the following taken and modified from https://github.com/ZcashFoundation/zebra/blob/f79fc6aa8eff0db98e8eae53194325188ee96915/zebra-rpc/src/methods.rs#L1102
 
-        let hash_or_height = HashOrHeight::Height(
-            height,
-        );
+        let hash_or_height = HashOrHeight::Height(height);
 
         let sapling_request = zebra_state::ReadRequest::SaplingTree(hash_or_height);
         let sapling_response = read_service
