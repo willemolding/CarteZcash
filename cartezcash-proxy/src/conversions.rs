@@ -3,7 +3,7 @@ use std::sync::Arc;
 use zebra_chain::{block::Block, serialization::ZcashSerialize, transaction::Transaction};
 
 use crate::proto::compact_formats::{
-    ChainMetadata, CompactBlock, CompactSaplingOutput, CompactSaplingSpend, CompactTx,
+    ChainMetadata, CompactBlock, CompactSaplingOutput, CompactOrchardAction, CompactSaplingSpend, CompactTx,
 };
 
 // Copied from https://github.com/ZcashFoundation/zebra/blob/4579722833a78843569e4419d0e5dbe6f4041c1b/zebra-scan/src/service/scan_task/scan.rs#L437
@@ -89,7 +89,23 @@ fn transaction_to_compact((index, tx): (usize, Arc<Transaction>)) -> CompactTx {
             })
             .collect(),
 
-        // `actions` is not checked by the `scan_block` function.
-        actions: vec![],
+        actions: tx
+        .orchard_actions()
+        .map(|action| CompactOrchardAction {
+            nullifier: <[u8; 32]>::from(action.nullifier).to_vec(),
+            cmx: <[u8; 32]>::from(action.cm_x).to_vec(),
+            ephemeral_key: action
+                .ephemeral_key
+                .zcash_serialize_to_vec()
+                .expect("verified action should serialize successfully"),
+            ciphertext: action
+                .enc_ciphertext
+                .zcash_serialize_to_vec()
+                .expect("verified action should serialize successfully")
+                .into_iter()
+                .take(52)
+                .collect(),
+        })
+        .collect(),
     }
 }
