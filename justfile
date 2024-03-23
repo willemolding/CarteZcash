@@ -4,7 +4,7 @@ build:
     sunodo build
 
 run-local:
-    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner cargo run --release
+    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner cargo run
 
 sunodo-nobackend:
     sunodo run --no-backend

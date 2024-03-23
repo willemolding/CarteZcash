@@ -443,8 +443,10 @@ name = "cartezcash"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64-url",
  "cartezcash-proxy",
  "chrono",
+ "ciborium",
  "ethabi",
  "ethereum-types",
  "futures-util",

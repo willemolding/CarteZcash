@@ -38,17 +38,15 @@ async fn main() -> Result<(), anyhow::Error> {
     // run the proxy here
     // TODO: Put this behind a feature flag, it is for testing only
 
-    let state_read_service = Buffer::new(state_read_service, 10);
-    let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
-
-    let addr = "[::1]:50051".parse()?;
-    println!("Server listening on {}", addr);
-
-    let grpc_server = tonic::transport::Server::builder()
-        .trace_fn(|_| tracing::info_span!("cartezcash-proxy"))
-        .add_service(svc)
-        .serve(addr);
-    tokio::spawn(grpc_server);
+    // let state_read_service = Buffer::new(state_read_service, 10);
+    // let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
+    // let addr = "[::1]:50051".parse()?;
+    // println!("Server listening on {}", addr);
+    // let grpc_server = tonic::transport::Server::builder()
+    //     .trace_fn(|_| tracing::info_span!("cartezcash-proxy"))
+    //     .add_service(svc)
+    //     .serve(addr);
+    // tokio::spawn(grpc_server);
 
     let mut tinycash = Buffer::new(
         BoxService::new(tiny_cash::write::TinyCashWriteService::new(
@@ -66,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .await
         .unwrap();
 
-    let mut cartezcash = BoxService::new(CarteZcashService::new(tinycash));
+    let mut cartezcash = BoxService::new(CarteZcashService::new(tinycash, state_read_service));
 
     let mut status = Response::Accept { burned: 0 };
     loop {
@@ -89,13 +87,11 @@ async fn main() -> Result<(), anyhow::Error> {
                 .map_err(|e| anyhow::anyhow!(e))?;
             println!("Tinycash returned status: {:?}", &status);
 
-            if let Some(voucher_request) = status.voucher_request(
+            if let Some(report_request) = status.report_request(
                 &server_addr,
-                ethereum_types::Address::random(),
-                ethereum_types::U256::from(888),
             ) {
-                println!("Sending voucher");
-                let response = client.request(voucher_request).await?;
+                println!("Sending report");
+                let response = client.request(report_request).await?;
                 println!(
                     "Received voucher status {}, {:?}",
                     response.status(),

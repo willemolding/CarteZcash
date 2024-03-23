@@ -9,7 +9,7 @@ use zebra_chain::transparent::Address;
 #[derive(Debug)]
 pub enum Request {
     AdvanceState(AdvanceStateRequest),
-    InspectState(zebra_state::Request),
+    InspectState(zebra_state::ReadRequest),
 }
 
 impl TryFrom<JsonValue> for Request {
@@ -21,7 +21,18 @@ impl TryFrom<JsonValue> for Request {
                 let advance_state = AdvanceStateRequest::try_from(req)?;
                 Ok(Request::AdvanceState(advance_state))
             }
-            // Some("inspect_state") => Ok(Request::InspectState),
+            Some("inspect_state") => {
+                if let Some(payload) = req["data"]["payload"].as_str() {
+                    tracing::info!("Inspect state requires received with payload: {}", payload);
+                    let b64_str_bytes = hex::decode(payload.trim_start_matches("0x"))?;
+                    let bytes = base64_url::decode(b64_str_bytes.as_slice())?;
+                    let state_query = ciborium::from_reader(bytes.as_slice()).unwrap();
+                    tracing::info!("Decoded to inspect state request: {:?}", state_query);
+                    Ok(Request::InspectState(state_query))
+                } else {
+                    anyhow::bail!("No payload in response")
+                }
+            },
             _ => anyhow::bail!("Invalid request type"),
         }
     }
