@@ -56,7 +56,7 @@ impl tower::Service<zebra_state::ReadRequest> for InspectStateReader {
             // hacky - no error handling or anything here
             let utf = std::str::from_utf8(&body)?;
             let resp_json = json::parse(utf)?;
-            if let Some(hex) = resp_json["data"]["payload"].as_str() {
+            if let Some(hex) = resp_json["reports"][0]["payload"].as_str() {
                 let bytes = hex::decode(hex.trim_start_matches("0x"))?;
             
                 let state_query_response = ciborium::from_reader(bytes.as_slice()).unwrap();
