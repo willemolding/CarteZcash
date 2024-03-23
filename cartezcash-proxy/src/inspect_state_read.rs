@@ -3,7 +3,7 @@
 use std::{net::SocketAddr, pin::Pin};
 
 use futures_util::{Future, FutureExt};
-use hyper::{body::Buf, Uri};
+use hyper::Uri;
 
 pub struct InspectStateReader(SocketAddr);
 

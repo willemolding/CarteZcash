@@ -120,7 +120,7 @@ where
 
                     let height = (tip_height + 1).unwrap();
 
-                    println!(
+                    tracing::info!(
                         "Creating block for height: {:?}, parent_hash: {:?}",
                         height, previous_block_hash
                     );

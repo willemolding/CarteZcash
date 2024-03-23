@@ -1,8 +1,11 @@
+///
+/// Runs a lightwalletd gRPC server that translates requests into HTTP requests to the /inspect API of a Cartesi machine running CarteZcash
+/// Any ZCash wallet should be able to use this proxy to sync with the CarteZcash rollup
+/// 
+
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamerServer;
 use tonic::transport::Server;
 use tower::buffer::Buffer;
-use zebra_chain::block;
-use zebra_chain::parameters::Network;
 
 mod conversions;
 mod inspect_state_read;
@@ -17,13 +20,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
 
     let state_read_service = inspect_state_read::InspectStateReader::new("0.0.0.0:8080".parse()?);
-
-    // let (_, state_read_service, _, _) = zebra_state::init(
-    //     zebra_state::Config::ephemeral(),
-    //     Network::Mainnet,
-    //     block::Height::MAX,
-    //     0,
-    // );
     let state_read_service = Buffer::new(state_read_service, 10);
 
     let svc =

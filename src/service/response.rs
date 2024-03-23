@@ -1,4 +1,5 @@
 use json::object;
+
 #[derive(Debug)]
 pub enum Response {
     Accept { burned: u64 },

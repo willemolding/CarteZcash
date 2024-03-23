@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tower::buffer::Buffer;
 use tower::{Service, ServiceExt};
 use zebra_chain::block::Height;
 use zebra_chain::transparent;

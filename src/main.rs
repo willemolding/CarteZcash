@@ -14,7 +14,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let network = Network::Mainnet;
 
-    println!("Withdraw address is: {}", tiny_cash::mt_doom());
+    tracing::info!("Withdraw address is: {}", tiny_cash::mt_doom());
 
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
@@ -49,33 +49,31 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut status = Response::Accept { burned: 0 };
     loop {
-        println!("Sending finish");
+        tracing::info!("Sending finish");
         let response = client.request(status.host_request(&server_addr)).await?;
 
         if response.status() == hyper::StatusCode::ACCEPTED {
-            println!("No pending rollup request, trying again");
+            tracing::info!("No pending rollup request, trying again");
         } else {
             let body = hyper::body::to_bytes(response).await?;
             let utf = std::str::from_utf8(&body)?;
             let req = json::parse(utf)?;
-            println!("Received raw request: {:?}", req);
             let dapp_request = Request::try_from(req)?;
-            println!("Parsed request: {:?}", dapp_request);
+
+            tracing::info!("Received request: {:?}", dapp_request);
 
             status = cartezcash
                 .call(dapp_request)
                 .await
                 .map_err(|e| anyhow::anyhow!(e))?;
-            println!("Tinycash returned status: {:?}", &status);
+
+            if status.report_request(&server_addr).is_none() {
+                tracing::info!("CarteZcash responded with: {:?}", status);
+            }
 
             if let Some(report_request) = status.report_request(&server_addr) {
-                println!("Sending report");
-                let response = client.request(report_request).await?;
-                println!(
-                    "Received voucher status {}, {:?}",
-                    response.status(),
-                    hyper::body::to_bytes(response).await?
-                );
+                tracing::info!("Sending report");
+                client.request(report_request).await?;
             }
         }
     }
