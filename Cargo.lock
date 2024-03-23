@@ -3176,6 +3176,7 @@ dependencies = [
 [[package]]
 name = "tower-batch-control"
 version = "0.2.41-beta.11"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "futures",
  "futures-core",
@@ -3191,6 +3192,7 @@ dependencies = [
 [[package]]
 name = "tower-fallback"
 version = "0.2.41-beta.11"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "futures-core",
  "pin-project",
@@ -3911,6 +3913,7 @@ dependencies = [
 [[package]]
 name = "zebra-chain"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bitflags 2.5.0",
  "bitflags-serde-legacy",
@@ -3968,6 +3971,7 @@ dependencies = [
 [[package]]
 name = "zebra-consensus"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bellman",
  "blake2b_simd",
@@ -4003,6 +4007,7 @@ dependencies = [
 [[package]]
 name = "zebra-node-services"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "zebra-chain",
 ]
@@ -4010,6 +4015,7 @@ dependencies = [
 [[package]]
 name = "zebra-script"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "displaydoc",
  "thiserror",
@@ -4020,6 +4026,7 @@ dependencies = [
 [[package]]
 name = "zebra-state"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bincode",
  "chrono",
@@ -4053,6 +4060,7 @@ dependencies = [
 [[package]]
 name = "zebra-test"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "color-eyre",
  "futures",

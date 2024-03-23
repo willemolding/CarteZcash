@@ -89,7 +89,7 @@ This service itself is created from two Zebra tower services. A state service an
 
 This is the translation layer that allows existing Zcash wallets to work (almost) seamlessly with CarteZcash. It exposes a GRPC server generated to match the `lightwalletd` protocol. Only the minimal methods required to use Zingo wallet are implemented.
 
-This service can be created directly from a `TinyCashWriteService` for running in local mode or using the `inspect` API for connecting to a running Cartesi node.
+The service acts as a translation layer turning wallet queries into Cartesi inspect_state requests and handling the results. It can alternatively be instantiated directly from a `zebra_chain::ReadService` for running in local mode.
 
 > note that files in the `proto` directory were auto-generated from protobuf and do not need to be reviewed
 

@@ -29,4 +29,4 @@ start-wallet-2:
     zingo-cli --data-dir ./walletdata2 --server localhost:50051
 
 clear-wallet:
-    rm -rf ./walletdata
+    rm -rf ./walletdata*

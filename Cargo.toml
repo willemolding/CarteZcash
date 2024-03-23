@@ -9,6 +9,11 @@ license = "APACHE-2.0"
 default = ["proxy"]
 proxy = ["cartezcash-proxy", "tonic"]
 
+# lets get those speedups
+[profile.release]
+codegen-units = 1
+lto = "fat"
+
 [dependencies]
 
 json = "0.12"
@@ -24,17 +29,17 @@ futures-util = "0.3.30"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 ethabi = "18.0.0"
+tonic = { version = "0.11.0", optional = true }
+ciborium = "0.2.2"
+base64-url = "2.0.2"
 
 zebra-chain = { workspace = true }
 zebra-state = { workspace = true }
 zebra-consensus = { workspace = true }
 
 tiny-cash = { path = "tiny-cash" }
-
 cartezcash-proxy = { path = "cartezcash-proxy", optional = true }
-tonic = { version = "0.11.0", optional = true }
-ciborium = "0.2.2"
-base64-url = "2.0.2"
+
 
 [workspace]
 members = [ "cartezcash-proxy", "tiny-cash"]
@@ -44,16 +49,16 @@ members = [ "cartezcash-proxy", "tiny-cash"]
 # patched zebra crates to support TinyCash network and expose things we need
 
 # use these for docker builds
-# zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "ead0eca6ae22655294a43914b89804ab3219f2c0", default-features = false }
-# zebra-state = { git = "https://github.com/willemolding/zebra", rev = "ead0eca6ae22655294a43914b89804ab3219f2c0", default-features = false }
-# zebra-test = { git = "https://github.com/willemolding/zebra", rev = "ead0eca6ae22655294a43914b89804ab3219f2c0", default-features = false }
-# zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "ead0eca6ae22655294a43914b89804ab3219f2c0", default-features = false }
+zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
 
 # use these for speedy local development
-zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
-zebra-state = { path = "../zebra/zebra-state", default-features = false }
-zebra-test = { path = "../zebra/zebra-test", default-features = false }
-zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
+# zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
+# zebra-state = { path = "../zebra/zebra-state", default-features = false }
+# zebra-test = { path = "../zebra/zebra-test", default-features = false }
+# zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
 
 
 
