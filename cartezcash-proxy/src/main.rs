@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = "[::1]:50051".parse()?;
 
-    let state_read_service = inspect_state_read::InspectStateReader::new("http://localhost:3000".parse()?);
+    let state_read_service = inspect_state_read::InspectStateReader::new("0.0.0.0:8080".parse()?);
 
     // let (_, state_read_service, _, _) = zebra_state::init(
     //     zebra_state::Config::ephemeral(),

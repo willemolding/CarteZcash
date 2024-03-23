@@ -25,3 +25,4 @@ hyper = { version = "0.14", features = ["http1", "runtime", "client"] }
 base64-url = "2.0.2"
 serde = "1.0.197"
 ciborium = "0.2.2"
+json = "0.12.4"
