@@ -177,7 +177,7 @@ where
                     orchard_commitment_tree_size,
                 },
             );
-            tracing::info!("sending block: {:?}", compact_block);
+            tracing::debug!("sending block: {:?}", compact_block);
             tx.send(Ok(compact_block)).await.unwrap();
         }
 
@@ -246,7 +246,7 @@ where
             let (tx, rx) = mpsc::channel(10);
             tracing::info!("{:?} transactions found", txns.len());
             for (_location, tx_id) in txns.iter() {
-                tracing::info!("got txid: {:?}", tx_id);
+                tracing::debug!("got txid: {:?}", tx_id);
 
                 let res = state_read_service
                     .ready()
@@ -264,12 +264,12 @@ where
                     .await
                     .unwrap();
                 } else {
-                    tracing::info!("unexpected response");
+                    tracing::debug!("unexpected response");
                 }
             }
             Ok(tonic::Response::new(ReceiverStream::new(rx)))
         } else {
-            tracing::info!("unexpected response");
+            tracing::debug!("unexpected response");
             Err(tonic::Status::unimplemented(
                 "unexpcted response from TransactionIdsByAddresses",
             ))
@@ -302,7 +302,7 @@ where
         let block = match res {
             ReadResponse::Block(Some(block)) => block,
             _ => {
-                tracing::info!("unexpected response");
+                tracing::debug!("unexpected response");
                 return Err(tonic::Status::not_found(
                     "Could not find the block in the state store",
                 ));
@@ -352,7 +352,7 @@ where
             hash: hash.to_string(),
             time: block.header.time.timestamp() as u32,
         };
-        tracing::info!("returning tree state: {:?}", tree_state);
+        tracing::debug!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
     }
 

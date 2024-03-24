@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let svc =
         CompactTxStreamerServer::new(service_impl::CompactTxStreamerImpl { state_read_service });
 
-    println!("Server listening on {}", addr);
+    tracing::info!("Server listening on {}", addr);
     Server::builder()
         .trace_fn(|_| tracing::info_span!("cartezcash-proxy"))
         .add_service(svc)

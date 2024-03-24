@@ -1,8 +1,8 @@
 use service::{CarteZcashService, Request, Response};
-use std::{env, str::FromStr};
+use std::env;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 
-use zebra_chain::{amount::Amount, block, parameters::Network, serialization::ZcashDeserialize};
+use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
 
 use crate::service::AdvanceStateRequest;
@@ -14,9 +14,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    print!(include_str!("ascii-logo.txt"));
+
     let network = Network::Mainnet;
 
-    tracing::info!("Withdraw address is: {}", tiny_cash::mt_doom());
+    println!("Withdraw address is: {}", tiny_cash::mt_doom());
 
     let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
@@ -73,9 +75,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
             if let (Request::AdvanceState(AdvanceStateRequest::Transact { withdraw_address, .. }), Response::Accept { ref burned }) = (&dapp_request, &status) {
                 if burned > &0 {
-                    if let Some(report_request) = status.voucher_request(&server_addr, *withdraw_address, (*burned).into()) {
-                        tracing::info!("Sending report");
-                        client.request(report_request).await?;
+                    if let Some(voucher_request) = status.voucher_request(&server_addr, *withdraw_address, (*burned).into()) {
+                        tracing::info!("Sending voucher");
+                        client.request(voucher_request).await?;
                     }
                 }
             }

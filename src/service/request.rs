@@ -41,7 +41,7 @@ impl TryFrom<JsonValue> for Request {
 /// Requests that can be received from the L1
 /// will be either EtherTransfer {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xffdbe43d4c855bf7e0f105c400a50857f53ab044","epoch_index":0,"input_index":0,"block_number":11,"timestamp":1710913093},"payload":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000001314fb37062980000"}}
 ///      or generic data message {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","epoch_index":0,"input_index":1,"block_number":122,"timestamp":1710913648},"payload":"0xffff"}}
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum AdvanceStateRequest {
     Deposit {
         amount: Amount<NonNegative>,
@@ -52,6 +52,20 @@ pub enum AdvanceStateRequest {
         txn: Transaction,
     },
 }
+
+impl std::fmt::Debug for AdvanceStateRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AdvanceStateRequest::Deposit { amount, to } => {
+                write!(f, "Deposit {} to {}", amount, to)
+            }
+            AdvanceStateRequest::Transact { withdraw_address, txn } => {
+                write!(f, "Transact hash {} with withdrawal address {}", txn.hash(), withdraw_address)
+            }
+        }
+    }
+}
+
 
 const ETH_DEPOSIT_ADDR: &str = "0xffdbe43d4c855bf7e0f105c400a50857f53ab044";
 const INBOX_CONTRACT_ADDR: &str = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
@@ -79,16 +93,17 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 let value = U256::from_big_endian(&bytes[20..52])
                     .checked_div(U256::from(10_000_000_000_u64))
                     .unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
-                println!("Value: {:?}", value);
-                println!("Key bytes: {:?}", &bytes[52..]);
 
                 let dest_t_address = Address::from_pub_key_hash(
                     zebra_chain::parameters::Network::Mainnet,
                     bytes[52..].try_into().unwrap(),
                 );
+                let amount = Amount::try_from(value.as_u64())?; // FIX: This is going to panic if too much eth is sent
+
+                tracing::info!("Received deposit request for {} to {}", value, dest_t_address);
 
                 Ok(AdvanceStateRequest::Deposit {
-                    amount: Amount::try_from(value.as_u64())?, // FIX: This is going to panic if too much eth is sent
+                    amount,
                     to: dest_t_address,
                 })
             }
@@ -106,6 +121,9 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 let txn = zebra_chain::transaction::Transaction::zcash_deserialize(
                     &bytes[20..],
                 )?;
+
+                tracing::info!("Received transaction request {} send burns to {}", txn.hash(), withdraw_address);
+
                 Ok(AdvanceStateRequest::Transact { withdraw_address, txn })
             }
             _ => anyhow::bail!("unrecognised sender"),
