@@ -6,7 +6,7 @@ use zebra_chain::serialization::ZcashDeserialize;
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent::Address;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Request {
     AdvanceState(AdvanceStateRequest),
     InspectState(zebra_state::ReadRequest),
@@ -41,7 +41,7 @@ impl TryFrom<JsonValue> for Request {
 /// Requests that can be received from the L1
 /// will be either EtherTransfer {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xffdbe43d4c855bf7e0f105c400a50857f53ab044","epoch_index":0,"input_index":0,"block_number":11,"timestamp":1710913093},"payload":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000001314fb37062980000"}}
 ///      or generic data message {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266","epoch_index":0,"input_index":1,"block_number":122,"timestamp":1710913648},"payload":"0xffff"}}
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AdvanceStateRequest {
     Deposit {
         amount: Amount<NonNegative>,

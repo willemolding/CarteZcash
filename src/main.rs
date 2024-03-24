@@ -5,6 +5,8 @@ use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
 use zebra_chain::{amount::Amount, block, parameters::Network, serialization::ZcashDeserialize};
 use zebra_consensus::transaction as tx;
 
+use crate::service::AdvanceStateRequest;
+
 mod service;
 
 #[tokio::main]
@@ -53,20 +55,29 @@ async fn main() -> Result<(), anyhow::Error> {
             let req = json::parse(utf)?;
             let dapp_request = Request::try_from(req)?;
 
-            tracing::info!("Received request: {:?}", dapp_request);
+            tracing::debug!("Received request: {:?}", &dapp_request);
 
             status = cartezcash
-                .call(dapp_request)
+                .call(dapp_request.clone())
                 .await
                 .map_err(|e| anyhow::anyhow!(e))?;
 
             if status.report_request(&server_addr).is_none() {
-                tracing::info!("CarteZcash responded with: {:?}", status);
+                tracing::debug!("CarteZcash responded with: {:?}", status);
             }
 
             if let Some(report_request) = status.report_request(&server_addr) {
                 tracing::info!("Sending report");
                 client.request(report_request).await?;
+            }
+
+            if let (Request::AdvanceState(AdvanceStateRequest::Transact { withdraw_address, .. }), Response::Accept { ref burned }) = (&dapp_request, &status) {
+                if burned > &0 {
+                    if let Some(report_request) = status.voucher_request(&server_addr, *withdraw_address, (*burned).into()) {
+                        tracing::info!("Sending report");
+                        client.request(report_request).await?;
+                    }
+                }
             }
         }
     }

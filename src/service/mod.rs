@@ -60,7 +60,7 @@ where
         async move {
             match req {
                 Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
-                    tracing::info!("handling reposit request for amount {} to {}", amount, to);
+                    tracing::debug!("handling reposit request for amount {} to {}", amount, to);
                     tiny_cash
                         .ready()
                         .await?
@@ -74,7 +74,7 @@ where
                         })
                 }
                 Request::AdvanceState(AdvanceStateRequest::Transact { txn, .. }) => {
-                    tracing::info!("handling transact request for txn {:?}", txn);
+                    tracing::debug!("handling transact request for txn {:?}", txn);
                     tiny_cash
                         .ready()
                         .await?
@@ -85,7 +85,7 @@ where
                         })
                 }
                 Request::InspectState(request) => {
-                    tracing::info!("handling inspect state request");
+                    tracing::debug!("handling inspect state request");
                     state_read_service
                         .ready()
                         .await?

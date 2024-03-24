@@ -1,6 +1,6 @@
 use json::object;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Response {
     Accept { burned: u64 },
     Report { payload: Vec<u8> },
