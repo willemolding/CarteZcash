@@ -4,6 +4,7 @@ use json::object;
 pub enum Response {
     Accept { burned: u64 },
     Report { payload: Vec<u8> },
+    #[allow(dead_code)]
     Reject,
 }
 
@@ -43,9 +44,9 @@ impl Response {
             Response::Report { .. } => return None,
         }
 
-        let response = object! {
-            destination: format!("0x{}", hex::encode(dest.as_fixed_bytes())),
-            payload: format!("0x{}", hex::encode(ethabi::encode(&[ethabi::Token::Uint(value)]))),
+        let response = object! { // hack - dApp address is hard-coded for now
+            destination: "0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C",//format!("0x{}", hex::encode(dest.as_fixed_bytes())),
+            payload: format!("0x{}", hex::encode(withdraw_ether_call(dest, value)))//format!("0x{}", hex::encode(ethabi::encode(&[ethabi::Token::Address(dest), ethabi::Token::Uint(value)]))),
         };
         println!("Voucher request: {}", response.dump());
         Some(
@@ -76,4 +77,16 @@ impl Response {
             }
         }
     }
+}
+
+fn withdraw_ether_call(receiver: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
+    let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
+
+    let encoded_params = ethabi::encode(&[ethabi::Token::Address(receiver), ethabi::Token::Uint(value)]);
+    
+    let mut encoded = Vec::new();
+    encoded.extend_from_slice(&function.selector().as_slice());
+    encoded.extend_from_slice(&encoded_params);
+
+    encoded
 }

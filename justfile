@@ -3,6 +3,9 @@ set positional-arguments
 build:
     sunodo build
 
+run:
+    sunodo run --epoch-duration=10
+
 run-local:
     ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner cargo run --release
 
@@ -24,7 +27,7 @@ sunodo-nobackend:
     sunodo send generic --input="$1$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
 
 execute_voucher:
-    cast send 0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+    cast send 0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C "executeVoucher(address, bytes, struct Proof _proof)"
 
 ##### wallet related commands
 
