@@ -59,13 +59,20 @@ impl std::fmt::Debug for AdvanceStateRequest {
             AdvanceStateRequest::Deposit { amount, to } => {
                 write!(f, "Deposit {} to {}", amount, to)
             }
-            AdvanceStateRequest::Transact { withdraw_address, txn } => {
-                write!(f, "Transact hash {} with withdrawal address {}", txn.hash(), withdraw_address)
+            AdvanceStateRequest::Transact {
+                withdraw_address,
+                txn,
+            } => {
+                write!(
+                    f,
+                    "Transact hash {} with withdrawal address {}",
+                    txn.hash(),
+                    withdraw_address
+                )
             }
         }
     }
 }
-
 
 const ETH_DEPOSIT_ADDR: &str = "0xffdbe43d4c855bf7e0f105c400a50857f53ab044";
 const INBOX_CONTRACT_ADDR: &str = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
@@ -100,7 +107,11 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 );
                 let amount = Amount::try_from(value.as_u64())?; // FIX: This is going to panic if too much eth is sent
 
-                tracing::info!("Received deposit request for {} to {}", value, dest_t_address);
+                tracing::info!(
+                    "Received deposit request for {} to {}",
+                    value,
+                    dest_t_address
+                );
 
                 Ok(AdvanceStateRequest::Deposit {
                     amount,
@@ -116,15 +127,21 @@ impl TryFrom<JsonValue> for AdvanceStateRequest {
                 let hex = req["data"]["payload"].as_str().unwrap();
                 let bytes = hex::decode(hex.trim_start_matches("0x"))?;
 
-                let withdraw_address = ethereum_types::Address::from_slice(bytes[0..20].try_into().unwrap());
+                let withdraw_address =
+                    ethereum_types::Address::from_slice(bytes[0..20].try_into().unwrap());
 
-                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(
-                    &bytes[20..],
-                )?;
+                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(&bytes[20..])?;
 
-                tracing::info!("Received transaction request {} send burns to {}", txn.hash(), withdraw_address);
+                tracing::info!(
+                    "Received transaction request {} send burns to {}",
+                    txn.hash(),
+                    withdraw_address
+                );
 
-                Ok(AdvanceStateRequest::Transact { withdraw_address, txn })
+                Ok(AdvanceStateRequest::Transact {
+                    withdraw_address,
+                    txn,
+                })
             }
             _ => anyhow::bail!("unrecognised sender"),
         }

@@ -1,9 +1,9 @@
+use crate::proto::service::compact_tx_streamer_server::CompactTxStreamerServer;
 ///
 /// Runs a lightwalletd gRPC server that translates requests into HTTP requests to the /inspect API of a Cartesi machine running CarteZcash
 /// Any ZCash wallet should be able to use this proxy to sync with the CarteZcash rollup
-/// 
+///
 use std::env;
-use crate::proto::service::compact_tx_streamer_server::CompactTxStreamerServer;
 use tonic::transport::Server;
 use tower::buffer::Buffer;
 

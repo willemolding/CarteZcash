@@ -38,7 +38,7 @@ cartezcash-proxy = { path = "cartezcash-proxy", optional = true }
 
 
 [workspace]
-members = [ "cartezcash-proxy", "tiny-cash", "tower-cartesi"]
+members = [ "cartezcash-proxy", "tiny-cash"]
 
 [workspace.dependencies]
 

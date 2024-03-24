@@ -3639,16 +3639,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tower-cartesi"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ethereum-types",
- "hyper",
- "tower",
-]
-
-[[package]]
 name = "tower-fallback"
 version = "0.2.41-beta.11"
 source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"

@@ -2,8 +2,12 @@ use json::object;
 
 #[derive(Clone, Debug)]
 pub enum Response {
-    Accept { burned: u64 },
-    Report { payload: Vec<u8> },
+    Accept {
+        burned: u64,
+    },
+    Report {
+        payload: Vec<u8>,
+    },
     #[allow(dead_code)]
     Reject,
 }
@@ -82,8 +86,9 @@ impl Response {
 fn withdraw_ether_call(receiver: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
     let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
 
-    let encoded_params = ethabi::encode(&[ethabi::Token::Address(receiver), ethabi::Token::Uint(value)]);
-    
+    let encoded_params =
+        ethabi::encode(&[ethabi::Token::Address(receiver), ethabi::Token::Uint(value)]);
+
     let mut encoded = Vec::new();
     encoded.extend_from_slice(&function.selector().as_slice());
     encoded.extend_from_slice(&encoded_params);
