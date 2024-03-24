@@ -11,7 +11,11 @@ mod service;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_max_level(tracing::Level::INFO)
+        .compact()
+        .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
     print!(include_str!("ascii-logo.txt"));
@@ -75,9 +79,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
             if let (Request::AdvanceState(AdvanceStateRequest::Transact { withdraw_address, .. }), Response::Accept { ref burned }) = (&dapp_request, &status) {
                 if burned > &0 {
+                    tracing::info!("Detected {} coins burned, sending withdraw voucher", burned);
                     if let Some(voucher_request) = status.voucher_request(&server_addr, *withdraw_address, (*burned).into()) {
-                        tracing::info!("Sending voucher");
-                        client.request(voucher_request).await?;
+                        tracing::info!("Sending voucher: {:?}", voucher_request.body());
+                        let res = client.request(voucher_request).await?;
+                        tracing::info!("Voucher response: {:?}", res.status());
                     }
                 }
             }

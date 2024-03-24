@@ -7,7 +7,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tower::{Service, ServiceExt};
 use zebra_chain::block::Height;
 use zebra_chain::transparent;
-use zebra_state::{FromDisk, HashOrHeight, IntoDisk, ReadResponse};
+use zebra_state::{HashOrHeight, IntoDisk, ReadResponse};
 
 use crate::conversions;
 use crate::proto::compact_formats::*;
@@ -58,7 +58,7 @@ where
 
     async fn get_latest_block(
         &self,
-        request: tonic::Request<ChainSpec>,
+        _request: tonic::Request<ChainSpec>,
     ) -> std::result::Result<tonic::Response<BlockId>, tonic::Status> {
         tracing::info!("get_latest_block called");
 
@@ -193,13 +193,15 @@ where
         let mut state_read_service = self.state_read_service.clone();
 
         let request = zebra_state::ReadRequest::Transaction(
-            zebra_chain::transaction::Hash::from_bytes_in_display_order(&request.into_inner().hash.try_into().unwrap()),
+            zebra_chain::transaction::Hash::from_bytes_in_display_order(
+                &request.into_inner().hash.try_into().unwrap(),
+            ),
         );
         let response = state_read_service
-                .ready()
-                .and_then(|service| service.call(request))
-                .await
-                .unwrap();
+            .ready()
+            .and_then(|service| service.call(request))
+            .await
+            .unwrap();
         if let zebra_state::ReadResponse::Transaction(Some(transaction)) = response {
             Ok(tonic::Response::new(RawTransaction {
                 data: transaction.tx.as_bytes(),

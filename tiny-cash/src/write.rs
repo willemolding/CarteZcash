@@ -120,10 +120,6 @@ where
 
                     let height = (tip_height + 1).unwrap();
 
-                    tracing::info!(
-                        "Appending block: height: {:?}, parent_hash: {:?}",
-                        height, previous_block_hash
-                    );
 
                     // Every block needs a coinbase transaction which records the height
                     // For a mint event this will also be used to mint new coins
@@ -187,6 +183,8 @@ where
             ));
 
             if height > Height(0) {
+
+                tracing::info!("Verifying transactions..... may take a while. Please wait before rescanning wallet");
                 // verify the transactions
                 for transaction in &transactions {
                     transaction_verifier
@@ -212,6 +210,12 @@ where
                     new_outputs,
                     transaction_hashes,
                 };
+
+                tracing::info!(
+                    "Appending block: height: {:?}, hash: {:?}",
+                    height, block_hash
+                );
+
                 state_service
                     .ready()
                     .await?

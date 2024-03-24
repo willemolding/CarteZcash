@@ -146,7 +146,7 @@ This same process could likely be applied to any blockchain state transition as 
 ## Pre-requisites
 
 - The project uses [just](https://github.com/casey/just) as a command runner. Please install that first
-- Building natively requires stable Rust and Cargo (tested version 1.76.0)
+- Building requires stable Rust and Cargo (tested version 1.76.0)
 - Running the demo requires Sunodo. See the [installation instructions](https://docs.sunodo.io/guide/introduction/installing)
     - This requires Docker be installed and the Docker host up and running
 
@@ -164,7 +164,9 @@ This cross-compiles for risvc using docker.
 
 ### Setup 
 
-#### No-backend Mode 
+#### Terminal 1 - Rollup Node
+
+##### Local Mode
 
 This runs CarteZcash locally rather than inside the Cartesi machine. This is a bit faster and easier to debug.
 
@@ -175,7 +177,7 @@ sunodo-nobackend # or sunodo run --no-backend
 just run-local
 ```
 
-#### Cartesi Machine Mode
+##### Cartesi Machine Mode
 
 If you want to see it running in the Cartesi machine for real then build and run with
 
@@ -184,8 +186,124 @@ sunodo build
 sunodo run
 ```
 
+#### Terminal 2 - Proxy
+
+Start the proxy with service with
+
+```shell
+just run-proxy
+```
+
+This is set up to work correctly with the default sunodo configuration of addresses and ports
+
+#### Terminal 3 - Wallet
+
+Install and start a Zingo CLI wallet based off the Cartezcash fork with:
+
+```shell
+just install-wallet
+just start-wallet
+```
+
+optionally also start another wallet to sent funds to
+
+```shell
+just start-wallet-2
+```
+
+> If you restart the chain you need to clear the wallet data and sync chain because the wallet expects the chain history to be immutable. This can be done with `just clear-wallet`.
+
 ### Steps
 
-The remainder of the steps are the same regardless of mode.
+#### Deposit into L2
 
-Start a local 
+First lets deposit some 1 Eth from the L1 anvil testnet into the L2. To do this get the hex encoded transparent address of the wallet by running `addresses` in zingo-wallet
+
+```
+(mainnet) Block:0 (type 'help') >> addresses
+[
+  {
+    "address": "...",
+    "receivers": {
+      "transparent": "t1gFWLbUvSo27sp6XBHAEb9YpVLMcgNADDU (0xf5772fe264e896c51d37a41648778b5155134b15)", <------- THIS ONE
+      "sapling": "...",
+      "orchard_exists": true
+    }
+  }
+]
+```
+
+Then run
+
+```shell
+just deposit 0xf5772fe264e896c51d37a41648778b5155134b15 1
+```
+
+and select the wallet and account to transfer from.
+
+From the wallet CLI run:
+
+```shell
+>> rescan
+>> balance
+``` 
+ 
+You should see the transparent balance update!
+
+> Funds are displayed in zatoshis so if you transferred 1 Eth you will see 100000000 zatoshis in the wallet. This amount is still redeemable for 1 Eth.
+
+#### Shield funds
+
+Now to shield these funds so they are private. From the Wallet CLI run
+
+```shell
+>> shield all
+```
+
+This will take a few moments to produce the ZK proof for the transaction and then dump the transaction hex to the console. Copy this to the clipboard.
+
+Next we want to send this transaction to the rollup via the InputBox contract. To do this in a new shell run
+
+```shell
+just send <paste-large-hex-string-here>
+```
+
+Want a minute or so for the Cartesi node to verify the ZK proofs and once you see `Sending finish` then run `rescan` and `balance` in the wallet to see the funds moved to the Orchard shielded pool.
+
+#### Send Shielded Funds
+
+Now our funds are shielded we can transfer them privately. Lets send some to another wallet. From a new shell run
+
+```shell
+just start-wallet-2
+```
+and get the wallet address same as before. Lets send to its private address this time. It should be `u1q7myvyvetdvl26jde38h0qg39crx3kz3nnfuryvkz579gql6375s78076z7mqs9yypdr2wu3j4xfltqswqenk66f0jamg3g0wr8330xdw778twy5kmgkz0y2u8sh9qpumynrwkkuarfxqpjf3nvkm07vdlxxtm376fm2tyyl7jm9wfgmtupmvh4yjslcdqaz90c6v5g0txf9v55m36a`
+
+From the original wallet run the following:
+```
+>> send u1q7myvyvetdvl26jde38h0qg39crx3kz3nnfuryvkz579gql6375s78076z7mqs9yypdr2wu3j4xfltqswqenk66f0jamg3g0wr8330xdw778twy5kmgkz0y2u8sh9qpumynrwkkuarfxqpjf3nvkm07vdlxxtm376fm2tyyl7jm9wfgmtupmvh4yjslcdqaz90c6v5g0txf9v55m36a 50000000
+```
+
+Submit the transaction as before
+
+```shell
+just send <paste-large-hex-string-here>
+```
+
+After waiting for the transactions to verify you should be able to rescan both wallets and see the balances updated!
+
+#### Withdraw to L1
+
+You can now withdraw funds from either wallet by sending to the Mt Doom address (`t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs`). We will withdraw from Wallet 2
+
+```
+>> send t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs 50000000
+```
+
+```shell
+just withdraw 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 <paste-large-hex-string-here>
+```
+
+You should see CarteZcash detect the burn and issue a withdrawal voucher.
+
+The voucher can then be executed from the CartesiDApp contract. 
