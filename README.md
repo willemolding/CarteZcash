@@ -131,6 +131,8 @@ Another approach might be to use blobs or a separate DA service to store the tra
 
 Currently the blockchain state and history is stored in the cartesi machine meaning eventually the data storage requirements will grow too large to continue. A more sustainable approach is to prune old blocks, checkpoint commitments to the state on L1, and have an off-chain indexer that can reproduce the state to assist wallets in producing transaction proofs. It is definitely possible to have a rollup that could run indefinitely but it requires major changes to wallets and the blockchain node and is outside the scope of this project.
 
+There is a currently a bug where rescanning the wallet after you have made a transparent transaction crashes the wallet. This is probably just a tiny fix needed to either Zingo or the proxy but I ran out of time to find it.
+
 ## Hackathon Reflection
 
 I anticipated that cramming the full Zcash client into the Cartesi machine was going to be the hardest part of this project but it turned out to be very simple. Aside from the initial build issues the client was able to run in the VM, including features such as caching the RocksDB to the filesystem, without any modifications.
@@ -143,7 +145,7 @@ This same process could likely be applied to any blockchain state transition as 
 
 ---
 
-# Instructions
+# Demo Instructions
 
 ## Pre-requisites
 
@@ -314,7 +316,7 @@ The voucher can then be executed from the CartesiDApp contract.
 
 Big thanks to:
 - [Sunodo](https://sunodo.io/) for their top class tooling
-- [Mugen Builders](https://github.com/Mugen-Builders) for the wallet template
+- [Mugen Builders](https://github.com/Mugen-Builders) for the wallet template I used in the demo
 - [Zebra](https://github.com/ZcashFoundation/zebra) team for their easy to follow codebase
 - [Zingo Labs](https://github.com/zingolabs) for developing Zingo wallet
-- [lychee[](https://twitter.com/LycheeLyrica) for the logo and banner
+- [lychee](https://twitter.com/LycheeLyrica) for the logo and banner
