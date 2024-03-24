@@ -60,11 +60,13 @@ The proxy is essentially an indexer that runs the same program as the Cartesi ma
 
 The following components were developed as part of the hackathon and should be considered for judging
 
-### cartezcash crate (top level crate)
+### [cartezcash crate](./src/)
 
-This contains the top level logic of parsing AdvanceState responses and submtting them as requests to a `tiny-cash` service.
+This contains the top level logic of querying the host for `AdvanceState`/`InspectState` responses and translating these into requests for a `tiny-cash` service.
 
-### tiny-cash crate
+It also deals with reponding to detected coin burns and issuing withdrawal vouchers.
+
+### [tiny-cash crate](./tiny-cash/)
 
 This crate exports a tower service through which requests can be made to make state transitions in the blockchain. It exposes a simple interface defined by the `Request` enum:
 
@@ -82,9 +84,9 @@ pub enum Request {
 }
 ```
 
-This service itself is created from two Zebra tower services. A state service and a transaction verifier service. The `TinyCashWriteService::call()` function is where the majority of the logic is contained.
+This service itself is created from two Zebra tower services - a state service and a transaction verifier service. The []`TinyCashWriteService::call()`](https://github.com/willemolding/CarteZcash/blob/4804db1af4f395b818d675244b53f94e02e4edf5/tiny-cash/src/write.rs#L94) function is where the majority of the logic is contained.
 
-### cartezcash-proxy
+### [cartezcash-proxy](./cartezcash-proxy/)
 
 This is the translation layer that allows existing Zcash wallets to work (almost) seamlessly with CarteZcash. It exposes a GRPC server generated to match the `lightwalletd` protocol. Only the minimal methods required to use Zingo wallet are implemented.
 
@@ -307,3 +309,12 @@ just withdraw 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 <paste-large-hex-string
 You should see CarteZcash detect the burn and issue a withdrawal voucher.
 
 The voucher can then be executed from the CartesiDApp contract. 
+
+## Acknowledgements
+
+Big thanks to:
+- [Sunodo](https://sunodo.io/) for their top class tooling
+- [Mugen Builders](https://github.com/Mugen-Builders) for the wallet template
+- [Zebra](https://github.com/ZcashFoundation/zebra) team for their easy to follow codebase
+- [Zingo Labs](https://github.com/zingolabs) for developing Zingo wallet
+- [lychee[](https://twitter.com/LycheeLyrica) for the logo and banner
