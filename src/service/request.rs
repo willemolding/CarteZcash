@@ -1,6 +1,5 @@
 use ethereum_types::U256;
 
-use hex::ToHex;
 use zebra_chain::amount::{Amount, NonNegative};
 use zebra_chain::serialization::ZcashDeserialize;
 use zebra_chain::transaction::Transaction;
@@ -19,27 +18,6 @@ pub enum Request {
         withdraw_address: ethereum_types::Address,
         txn: Transaction,
     },
-}
-
-impl std::fmt::Debug for Request {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Request::Deposit { amount, to } => {
-                write!(f, "Deposit {} to {}", amount, to)
-            }
-            Request::Transact {
-                withdraw_address,
-                txn,
-            } => {
-                write!(
-                    f,
-                    "Transact hash {} with withdrawal address {}",
-                    txn.hash(),
-                    withdraw_address
-                )
-            }
-        }
-    }
 }
 
 const ETH_DEPOSIT_ADDR: &str = "ffdbe43d4c855bf7e0f105c400a50857f53ab044";
@@ -107,6 +85,27 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                 })
             }
             _ => anyhow::bail!("unrecognised sender {}", metadata.msg_sender.to_string()),
+        }
+    }
+}
+
+impl std::fmt::Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Request::Deposit { amount, to } => {
+                write!(f, "Deposit {} to {}", amount, to)
+            }
+            Request::Transact {
+                withdraw_address,
+                txn,
+            } => {
+                write!(
+                    f,
+                    "Transact hash {} with withdrawal address {}",
+                    txn.hash(),
+                    withdraw_address
+                )
+            }
         }
     }
 }

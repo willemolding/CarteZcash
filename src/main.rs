@@ -134,26 +134,6 @@ where
         .unwrap();
 
     // initialize the Halo2 verifier key
-    // TODO: implement this
 
     Ok(())
-}
-
-fn withdraw_ether_call(receiver: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
-    let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
-
-    let encoded_params = ethabi::encode(&[
-        ethabi::Token::Address(receiver),
-        ethabi::Token::Uint(
-            value
-                .checked_mul(ethereum_types::U256::from(10_000_000_000_u64))
-                .unwrap(),
-        ),
-    ]);
-
-    let mut encoded = Vec::new();
-    encoded.extend_from_slice(&function.selector().as_slice());
-    encoded.extend_from_slice(&encoded_params);
-
-    encoded
 }
