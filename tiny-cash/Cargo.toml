@@ -16,6 +16,7 @@ zebra-consensus = { workspace = true, default-features = false, features = [] }
 zebra-state = { workspace = true, default-features = false, features = ["proptest-impl"] }
 zebra-test = { workspace = true, default-features = false }
 zebra-chain = { workspace = true, default-features = false, features = ["proptest-impl"] }
+lazy_static = "1.4.0"
 
 
 [dev-dependencies]

@@ -9,3 +9,11 @@ pub mod write;
 pub fn mt_doom() -> transparent::Address {
     transparent::Address::from_pub_key_hash(Network::Mainnet, [0; 20])
 }
+
+/// force initialization of the Orchard verifying key.
+/// This is an expensive but one-off operation
+/// if it isn't forced by falling this function
+/// it will be initialized the first time a shielded transaction is verified
+pub fn initialize_halo2() {
+    lazy_static::initialize(&zebra_consensus::halo2::VERIFYING_KEY);
+}
