@@ -1,8 +1,8 @@
-use serde::{Serialize, Deserialize};
 use hyper::Uri;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "snake_case")] 
+#[serde(rename_all = "snake_case")]
 pub enum Status {
     Accept,
     Reject,
@@ -39,14 +39,10 @@ impl Finish {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "request_type")] 
+#[serde(rename_all = "snake_case", tag = "request_type")]
 pub enum RollupRequest {
-    AdvanceState {
-        data: AdvanceStateData
-    },
-    InspectState {
-        data: InspectStateData
-    }
+    AdvanceState { data: AdvanceStateData },
+    InspectState { data: InspectStateData },
 }
 
 #[derive(Debug, Deserialize)]
@@ -66,16 +62,47 @@ pub struct AdvanceStateMetadata {
 
 #[derive(Debug, Deserialize)]
 pub struct InspectStateData {
-    pub payload: String
+    pub payload: String,
 }
 
 #[derive(Debug, Serialize)]
-pub struct NoticeOrReportOrException {
-    payload: String
+#[serde(untagged)]
+pub enum Output {
+    Notice {
+        #[serde(serialize_with = "hexify")]
+        payload: Vec<u8>,
+    },
+    Report {
+        #[serde(serialize_with = "hexify")]
+        payload: Vec<u8>,
+    },
+    Voucher {
+        destination: ethereum_types::Address,
+        #[serde(serialize_with = "hexify")]
+        payload: Vec<u8>,
+    },
 }
 
-#[derive(Debug, Serialize)]
-pub struct Voucher {
-    destination: ethereum_types::Address,
-    payload: String
+fn hexify<S>(data: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&format!("0x{}", hex::encode(data)))
+}
+
+impl Output {
+    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
+        let uri = match self {
+            Self::Notice { .. } => format!("{}/notice", host_uri),
+            Self::Report { .. } => format!("{}/report", host_uri),
+            Self::Voucher { .. } => format!("{}/voucher", host_uri),
+        };
+
+        hyper::Request::builder()
+            .method(hyper::Method::POST)
+            .header(hyper::header::CONTENT_TYPE, "application/json")
+            .uri(uri)
+            .body(hyper::Body::from(serde_json::to_string(self).unwrap()))
+            .unwrap()
+    }
 }

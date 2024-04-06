@@ -1,7 +1,10 @@
+use futures_util::future::FutureExt;
 use std::env;
 use std::error::Error;
+use std::future::Future;
+use std::pin::Pin;
 
-use tower_cartesi::{CartesiService, CartesiRollApp};
+use tower_cartesi::{CartesiRollApp, CartesiService, Response};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -13,7 +16,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let mut service = CartesiService::new(EchoApp{});
+    let mut service = CartesiService::new(EchoApp {});
     service.listen_http(&server_addr).await?;
 
     Ok(())
@@ -26,20 +29,22 @@ impl CartesiRollApp for EchoApp {
         &mut self,
         metadata: tower_cartesi::AdvanceStateMetadata,
         payload: Vec<u8>,
-    ) -> impl std::future::Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send + 'static {
+    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>> {
         async move {
-            println!("Received advance state request {:?}", metadata);
+            tracing::info!("Received advance state request {:?}", metadata);
             Ok(tower_cartesi::Response::empty_accept())
         }
+        .boxed()
     }
 
     fn handle_inspect_state(
         &mut self,
         payload: Vec<u8>,
-    ) -> impl std::future::Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send + 'static {
+    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>> {
         async move {
-            println!("Received inspect state request");
+            tracing::info!("Received inspect state request");
             Ok(tower_cartesi::Response::empty_accept())
         }
+        .boxed()
     }
 }

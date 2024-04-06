@@ -1,11 +1,17 @@
-use service::{CarteZcashService, Request, Response};
+use service::{CarteZcashService, Request};
 use std::env;
+use std::error::Error;
+use std::future::Future;
+use std::pin::Pin;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
+use tower_cartesi::{CartesiRollApp, CartesiService};
+
+use futures_util::future::FutureExt;
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
 
-use crate::service::AdvanceStateRequest;
+const DAPP_ADDRESS: &str = "70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C";
 
 mod service;
 
@@ -24,78 +30,86 @@ async fn main() -> Result<(), anyhow::Error> {
 
     println!("Withdraw address is: {}", tiny_cash::mt_doom());
 
-    let client = hyper::Client::new();
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    // set up the services needed to run the rollup
-    let (state_service, state_read_service, _, _) = zebra_state::init(
-        zebra_state::Config::ephemeral(),
-        network,
-        block::Height::MAX,
-        0,
-    );
-    let state_service = Buffer::new(state_service, 30);
-    let verifier_service = tx::Verifier::new(network, state_service.clone());
-    let mut tinycash = Buffer::new(
-        BoxService::new(tiny_cash::write::TinyCashWriteService::new(
-            state_service,
-            verifier_service,
-        )),
-        10,
-    );
+    let cartezcash_app = CarteZcashApp::new(network).await;
+    let mut service = CartesiService::new(cartezcash_app);
+    service.listen_http(&server_addr).await.unwrap();
 
-    initialize_network(&mut tinycash).await?;
+    Ok(())
+}
 
-    let mut cartezcash = BoxService::new(CarteZcashService::new(tinycash, state_read_service));
+struct CarteZcashApp {
+    cartezcash: Buffer<BoxService<Request, u64, Box<dyn Error + Sync + Send>>, Request>,
+}
 
-    let mut status = Response::Accept { burned: 0 };
-    loop {
-        tracing::info!("Sending finish");
-        let response = client.request(status.host_request(&server_addr)).await?;
+impl CarteZcashApp {
+    pub async fn new(network: Network) -> Self {
+        // set up the services needed to run the rollup
+        let (state_service, state_read_service, _, _) = zebra_state::init(
+            zebra_state::Config::ephemeral(),
+            network,
+            block::Height::MAX,
+            0,
+        );
+        let state_service = Buffer::new(state_service, 30);
+        let verifier_service = tx::Verifier::new(network, state_service.clone());
+        let mut tinycash = Buffer::new(
+            BoxService::new(tiny_cash::write::TinyCashWriteService::new(
+                state_service,
+                verifier_service,
+            )),
+            10,
+        );
 
-        if response.status() == hyper::StatusCode::ACCEPTED {
-            tracing::info!("No pending rollup request, trying again");
-        } else {
-            let body = hyper::body::to_bytes(response).await?;
-            let utf = std::str::from_utf8(&body)?;
-            let req = json::parse(utf)?;
-            let dapp_request = Request::try_from(req)?;
+        initialize_network(&mut tinycash).await.unwrap();
 
-            tracing::debug!("Received request: {:?}", &dapp_request);
-
-            status = cartezcash
-                .call(dapp_request.clone())
-                .await
-                .map_err(|e| anyhow::anyhow!(e))?;
-
-            if status.report_request(&server_addr).is_none() {
-                tracing::debug!("CarteZcash responded with: {:?}", status);
-            }
-
-            if let Some(report_request) = status.report_request(&server_addr) {
-                tracing::info!("Sending report");
-                client.request(report_request).await?;
-            }
-
-            if let (
-                Request::AdvanceState(AdvanceStateRequest::Transact {
-                    withdraw_address, ..
-                }),
-                Response::Accept { ref burned },
-            ) = (&dapp_request, &status)
-            {
-                if burned > &0 {
-                    tracing::info!("Detected {} coins burned, sending withdraw voucher", burned);
-                    if let Some(voucher_request) =
-                        status.voucher_request(&server_addr, *withdraw_address, (*burned).into())
-                    {
-                        tracing::info!("Sending voucher: {:?}", voucher_request.body());
-                        let res = client.request(voucher_request).await?;
-                        tracing::info!("Voucher response: {:?}", res.status());
-                    }
-                }
-            }
+        Self {
+            cartezcash: Buffer::new(
+                BoxService::new(CarteZcashService::new(tinycash, state_read_service)),
+                10,
+            ),
         }
+    }
+}
+
+impl CartesiRollApp for CarteZcashApp {
+    fn handle_advance_state(
+        &mut self,
+        metadata: tower_cartesi::AdvanceStateMetadata,
+        payload: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send>> {
+        let czk_request = Request::try_from((metadata, payload)).unwrap();
+        let mut cartezcash_service = self.cartezcash.clone();
+        async move {
+            let burned = cartezcash_service
+                .ready()
+                .await
+                .unwrap()
+                .call(czk_request.clone())
+                .await
+                .map_err(|e| anyhow::anyhow!(e))
+                .unwrap();
+
+            let response = tower_cartesi::Response::empty_accept();
+            if burned > 0 {
+                // add the voucher here
+            }
+
+            Ok(response)
+        }
+        .boxed()
+    }
+
+    fn handle_inspect_state(
+        &mut self,
+        payload: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send>> {
+        async move {
+            tracing::info!("Received inspect state request");
+            Ok(tower_cartesi::Response::empty_accept())
+        }
+        .boxed()
     }
 }
 
@@ -119,5 +133,27 @@ where
         .await
         .unwrap();
 
+    // initialize the Halo2 verifier key
+    // TODO: implement this
+
     Ok(())
+}
+
+fn withdraw_ether_call(receiver: ethereum_types::Address, value: ethereum_types::U256) -> Vec<u8> {
+    let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
+
+    let encoded_params = ethabi::encode(&[
+        ethabi::Token::Address(receiver),
+        ethabi::Token::Uint(
+            value
+                .checked_mul(ethereum_types::U256::from(10_000_000_000_u64))
+                .unwrap(),
+        ),
+    ]);
+
+    let mut encoded = Vec::new();
+    encoded.extend_from_slice(&function.selector().as_slice());
+    encoded.extend_from_slice(&encoded_params);
+
+    encoded
 }
