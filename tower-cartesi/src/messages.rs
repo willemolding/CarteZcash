@@ -1,15 +1,16 @@
 use serde::{Serialize, Deserialize};
+use hyper::Uri;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")] 
 pub enum Status {
     Accept,
     Reject,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Finish {
-    status: Status,
+    pub status: Status,
 }
 
 impl Finish {
@@ -24,10 +25,21 @@ impl Finish {
             status: Status::Reject,
         }
     }
+
+    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
+        let finish_uri = format!("{}/finish", host_uri);
+
+        hyper::Request::builder()
+            .method(hyper::Method::POST)
+            .header(hyper::header::CONTENT_TYPE, "application/json")
+            .uri(finish_uri)
+            .body(hyper::Body::from(serde_json::to_string(self).unwrap()))
+            .unwrap()
+    }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "snake_case")] 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "request_type")] 
 pub enum RollupRequest {
     AdvanceState {
         data: AdvanceStateData
@@ -37,13 +49,13 @@ pub enum RollupRequest {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct AdvanceStateData {
     pub metadata: AdvanceStateMetadata,
     pub payload: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct AdvanceStateMetadata {
     pub msg_sender: ethereum_types::Address,
     pub epoch_index: usize,
@@ -52,17 +64,17 @@ pub struct AdvanceStateMetadata {
     pub timestamp: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct InspectStateData {
     pub payload: String
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct NoticeOrReportOrException {
     payload: String
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Voucher {
     destination: ethereum_types::Address,
     payload: String
