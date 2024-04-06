@@ -3470,6 +3470,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "hex",
+ "lazy_static",
  "tokio",
  "tower",
  "tracing",

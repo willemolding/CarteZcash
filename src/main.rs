@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 use service::{CarteZcashService, Request};
+=======
+use service::{CarteZcashService, Request, Response};
+use tiny_cash::write::TinyCashWriteService;
+>>>>>>> 8b4c727e6068c12c5e4a31199a298cd90fea35e5
 use std::env;
 use std::error::Error;
 use std::future::Future;
@@ -29,6 +34,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let network = Network::Mainnet;
 
     println!("Withdraw address is: {}", tiny_cash::mt_doom());
+
+    tracing::info!("Initializing Halo2 verifier key");
+    tiny_cash::initialize_halo2();
+    tracing::info!("Initializing Halo2 verifier key complete");
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
