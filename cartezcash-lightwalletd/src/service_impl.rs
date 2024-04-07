@@ -55,12 +55,7 @@ where
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
-        tracing::info!("send_transaction called");
-
-        println!(
-            "Raw transaction hex: {:?}",
-            hex::encode(&request.get_ref().data)
-        );
+        tracing::info!("send_transaction called. Fowarding to InputBox contract");
 
         let provider =
             Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
