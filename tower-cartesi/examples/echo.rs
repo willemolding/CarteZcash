@@ -1,13 +1,12 @@
 use futures_util::future::FutureExt;
 use std::env;
-use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
 
-use tower_cartesi::{CartesiRollApp, CartesiService, Response};
+use tower_cartesi::{BoxError, CartesiRollApp, CartesiService, Response};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), BoxError> {
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .compact()
@@ -28,8 +27,8 @@ impl CartesiRollApp for EchoApp {
     fn handle_advance_state(
         &mut self,
         metadata: tower_cartesi::AdvanceStateMetadata,
-        payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>> {
+        _payload: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Response, BoxError>> + Send>> {
         async move {
             tracing::info!("Received advance state request {:?}", metadata);
             Ok(tower_cartesi::Response::empty_accept())
@@ -39,8 +38,8 @@ impl CartesiRollApp for EchoApp {
 
     fn handle_inspect_state(
         &mut self,
-        payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>> {
+        _payload: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Response, BoxError>> + Send>> {
         async move {
             tracing::info!("Received inspect state request");
             Ok(tower_cartesi::Response::empty_accept())
