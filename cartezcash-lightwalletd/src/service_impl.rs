@@ -316,27 +316,12 @@ where
 
         let hash_or_height = HashOrHeight::Height(height);
 
-        let sapling_request = zebra_state::ReadRequest::SaplingTree(hash_or_height);
-        let sapling_response = read_service
-            .ready()
-            .and_then(|service| service.call(sapling_request))
-            .await
-            .unwrap();
-
         let orchard_request = zebra_state::ReadRequest::OrchardTree(hash_or_height);
         let orchard_response = read_service
             .ready()
             .and_then(|service| service.call(orchard_request))
             .await
             .unwrap();
-
-        let sapling_tree_hex = match sapling_response {
-            zebra_state::ReadResponse::SaplingTree(maybe_tree) => {
-                let tree = zebra_chain::sapling::tree::SerializedTree::from(maybe_tree);
-                hex::encode(tree)
-            }
-            _ => unreachable!("unmatched response to a sapling tree request"),
-        };
 
         let orchard_tree_hex = match orchard_response {
             zebra_state::ReadResponse::OrchardTree(maybe_tree) => {
@@ -347,14 +332,14 @@ where
         };
 
         let tree_state = TreeState {
-            sapling_tree: sapling_tree_hex,
+            sapling_tree: hex::encode([0u8; 413]), // Sapling not supported but this stops the wallets from crashing
             orchard_tree: orchard_tree_hex,
             network: "mainnet".to_string(),
             height: height.0 as u64,
             hash: hash.to_string(),
             time: block.header.time.timestamp() as u32,
         };
-        tracing::debug!("returning tree state: {:?}", tree_state);
+        tracing::info!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
     }
 
@@ -399,7 +384,7 @@ where
         &self,
         _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
-        // tracing::info!("get_mempool_stream called. Ignoring request");
+        tracing::info!("get_mempool_stream called");
         // let (tx, rx) = mpsc::channel(4);
         // TODO: Send the txiods into the tx end of the channel
         Err(tonic::Status::unimplemented(

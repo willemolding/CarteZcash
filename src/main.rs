@@ -36,9 +36,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     println!("Withdraw address is: {}", tiny_cash::mt_doom());
 
-    tracing::info!("Initializing Halo2 verifier key");
-    tiny_cash::initialize_halo2();
-    tracing::info!("Initializing Halo2 verifier key complete");
+    // TODO: Enable this when not debugging
+    // tracing::info!("Initializing Halo2 verifier key");
+    // tiny_cash::initialize_halo2();
+    // tracing::info!("Initializing Halo2 verifier key complete");
 
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
