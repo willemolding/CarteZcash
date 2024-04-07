@@ -14,6 +14,17 @@ use crate::proto::compact_formats::*;
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
 use crate::proto::service::*;
 
+use ethers::prelude::abigen;
+use ethers::providers::{Http, Provider};
+use ethers::signers::{LocalWallet, Signer};
+use ethers::types::{Address, Bytes};
+use ethers::middleware::SignerMiddleware;
+
+abigen!(
+    IInputBox,
+    "[function addInput(address appContract, bytes calldata payload) external returns (bytes32)]"
+);
+
 #[derive(Clone)]
 pub struct CompactTxStreamerImpl<R> {
     pub state_read_service: R, //Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
@@ -39,16 +50,34 @@ where
     type GetTaddressTxidsStream = ReceiverStream<Result<RawTransaction, tonic::Status>>;
 
     /// Submit the given transaction to the Zcash network
+    /// TODO: This is a hacky implementatin to speed up tests. Write a better one in the future
     async fn send_transaction(
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
-        tracing::info!("send_transaction called");
+        tracing::info!("send_transaction called. Fowarding to InputBox contract");
 
-        println!(
-            "Raw transaction hex: {:?}",
-            hex::encode(&request.get_ref().data)
+        let provider =
+            Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
+        let wallet: LocalWallet =
+            "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+                .parse()
+                .unwrap();
+        let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet.with_chain_id(31337_u64)));
+
+        // Instantiate the contract
+        let contract = IInputBox::new(
+            Address::from_str("0x59b22D57D4f067708AB0c00552767405926dc768").unwrap(),
+            client,
         );
+        contract
+            .add_input(
+                Address::from_str("0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C").unwrap(),
+                Bytes::from(request.get_ref().data.clone()),
+            )
+            .send()
+            .await
+            .unwrap();
 
         Ok(tonic::Response::new(SendResponse {
             error_code: 0,
@@ -316,27 +345,12 @@ where
 
         let hash_or_height = HashOrHeight::Height(height);
 
-        let sapling_request = zebra_state::ReadRequest::SaplingTree(hash_or_height);
-        let sapling_response = read_service
-            .ready()
-            .and_then(|service| service.call(sapling_request))
-            .await
-            .unwrap();
-
         let orchard_request = zebra_state::ReadRequest::OrchardTree(hash_or_height);
         let orchard_response = read_service
             .ready()
             .and_then(|service| service.call(orchard_request))
             .await
             .unwrap();
-
-        let sapling_tree_hex = match sapling_response {
-            zebra_state::ReadResponse::SaplingTree(maybe_tree) => {
-                let tree = zebra_chain::sapling::tree::SerializedTree::from(maybe_tree);
-                hex::encode(tree)
-            }
-            _ => unreachable!("unmatched response to a sapling tree request"),
-        };
 
         let orchard_tree_hex = match orchard_response {
             zebra_state::ReadResponse::OrchardTree(maybe_tree) => {
@@ -347,14 +361,14 @@ where
         };
 
         let tree_state = TreeState {
-            sapling_tree: sapling_tree_hex,
+            sapling_tree: hex::encode([0u8; 413]), // Sapling not supported but this stops the wallets from crashing
             orchard_tree: orchard_tree_hex,
             network: "mainnet".to_string(),
             height: height.0 as u64,
             hash: hash.to_string(),
             time: block.header.time.timestamp() as u32,
         };
-        tracing::debug!("returning tree state: {:?}", tree_state);
+        tracing::info!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
     }
 
@@ -399,7 +413,7 @@ where
         &self,
         _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
-        // tracing::info!("get_mempool_stream called. Ignoring request");
+        tracing::info!("get_mempool_stream called");
         // let (tx, rx) = mpsc::channel(4);
         // TODO: Send the txiods into the tx end of the channel
         Err(tonic::Status::unimplemented(
@@ -463,7 +477,7 @@ where
 
     async fn get_taddress_balance_stream(
         &self,
-        _request: tonic::Request<tonic::Streaming<Address>>,
+        _request: tonic::Request<tonic::Streaming<crate::proto::service::Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
         tracing::info!("get_taddress_balance_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(

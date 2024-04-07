@@ -1,5 +1,5 @@
 [package]
-name = "cartezcash-proxy"
+name = "cartezcash-lightwalletd"
 version = "0.1.0"
 edition = "2021"
 authors = ["Willem Olding <willemolding@gmail.com>"]
@@ -21,6 +21,7 @@ base64-url = "2.0.2"
 serde = "1.0.197"
 ciborium = "0.2.2"
 json = "0.12.4"
+ethers = "1.0.0"
 
 zebra-consensus = { workspace = true, default-features = false, features = [] }
 zebra-state = { workspace = true, default-features = false, features = ["proptest-impl"] }

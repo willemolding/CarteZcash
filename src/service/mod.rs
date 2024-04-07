@@ -3,12 +3,9 @@ use std::future::Future;
 use std::pin::Pin;
 use tower::{Service, ServiceExt};
 
-pub use request::{AdvanceStateRequest, Request};
-pub use response::Response;
+pub use request::Request;
 
 mod request;
-mod response;
-
 pub struct CarteZcashService<S, SR> {
     tiny_cash: S,
     state_read_service: SR,
@@ -42,7 +39,7 @@ where
         + 'static,
     SR::Future: Send + 'static,
 {
-    type Response = Response;
+    type Response = u64;
     type Error = tiny_cash::write::BoxError;
     type Future =
         Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
@@ -56,10 +53,9 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let mut tiny_cash = self.tiny_cash.clone();
-        let mut state_read_service = self.state_read_service.clone();
         async move {
             match req {
-                Request::AdvanceState(AdvanceStateRequest::Deposit { amount, to }) => {
+                Request::Deposit { amount, to } => {
                     tracing::debug!("handling reposit request for amount {} to {}", amount, to);
                     tiny_cash
                         .ready()
@@ -69,33 +65,16 @@ where
                             to: to.create_script_from_address(),
                         })
                         .await
-                        .map(|res| Response::Accept {
-                            burned: res.burned.into(),
-                        })
+                        .map(|res| res.burned.into())
                 }
-                Request::AdvanceState(AdvanceStateRequest::Transact { txn, .. }) => {
+                Request::Transact { txn, .. } => {
                     tracing::debug!("handling transact request for txn {:?}", txn);
                     tiny_cash
                         .ready()
                         .await?
                         .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                         .await
-                        .map(|res| Response::Accept {
-                            burned: res.burned.into(),
-                        })
-                }
-                Request::InspectState(request) => {
-                    tracing::debug!("handling inspect state request");
-                    state_read_service
-                        .ready()
-                        .await?
-                        .call(request)
-                        .await
-                        .map(|res| {
-                            let mut payload = Vec::new();
-                            ciborium::into_writer(&res, &mut payload).unwrap();
-                            Response::Report { payload }
-                        })
+                        .map(|res| res.burned.into())
                 }
             }
         }
