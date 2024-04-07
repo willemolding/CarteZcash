@@ -14,6 +14,17 @@ use crate::proto::compact_formats::*;
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
 use crate::proto::service::*;
 
+use ethers::prelude::abigen;
+use ethers::providers::{Http, Provider};
+use ethers::signers::{LocalWallet, Signer};
+use ethers::types::{Address, Bytes};
+use ethers::middleware::SignerMiddleware;
+
+abigen!(
+    IInputBox,
+    "[function addInput(address appContract, bytes calldata payload) external returns (bytes32)]"
+);
+
 #[derive(Clone)]
 pub struct CompactTxStreamerImpl<R> {
     pub state_read_service: R, //Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
@@ -39,6 +50,7 @@ where
     type GetTaddressTxidsStream = ReceiverStream<Result<RawTransaction, tonic::Status>>;
 
     /// Submit the given transaction to the Zcash network
+    /// TODO: This is a hacky implementatin to speed up tests. Write a better one in the future
     async fn send_transaction(
         &self,
         request: tonic::Request<RawTransaction>,
@@ -49,6 +61,28 @@ where
             "Raw transaction hex: {:?}",
             hex::encode(&request.get_ref().data)
         );
+
+        let provider =
+            Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
+        let wallet: LocalWallet =
+            "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+                .parse()
+                .unwrap();
+        let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet.with_chain_id(31337_u64)));
+
+        // Instantiate the contract
+        let contract = IInputBox::new(
+            Address::from_str("0x59b22D57D4f067708AB0c00552767405926dc768").unwrap(),
+            client,
+        );
+        contract
+            .add_input(
+                Address::from_str("0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C").unwrap(),
+                Bytes::from(request.get_ref().data.clone()),
+            )
+            .send()
+            .await
+            .unwrap();
 
         Ok(tonic::Response::new(SendResponse {
             error_code: 0,
@@ -448,7 +482,7 @@ where
 
     async fn get_taddress_balance_stream(
         &self,
-        _request: tonic::Request<tonic::Streaming<Address>>,
+        _request: tonic::Request<tonic::Streaming<crate::proto::service::Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
         tracing::info!("get_taddress_balance_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(

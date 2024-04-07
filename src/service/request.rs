@@ -64,14 +64,12 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
             INBOX_CONTRACT_ADDR => {
                 /* Encoding
                 abi.encodePacked(
-                    withdraw address, // 20B
                     transaction bytes // arbitrary size
                  */
 
-                let withdraw_address =
-                    ethereum_types::Address::from_slice(payload[0..20].try_into().unwrap());
+                let withdraw_address = ethereum_types::Address::zero();
 
-                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(&payload[20..])?;
+                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
 
                 tracing::info!(
                     "Received transaction request {} send burns to {}",
