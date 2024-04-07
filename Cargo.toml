@@ -28,13 +28,14 @@ ethabi = "18.0.0"
 ciborium = "0.2.2"
 base64-url = "2.0.2"
 alloy-json-abi = "0.6.4"
+tonic = "0.11"
 
 zebra-chain = { workspace = true }
 zebra-state = { workspace = true }
 zebra-consensus = { workspace = true }
 
 tiny-cash = { path = "tiny-cash" }
-cartezcash-proxy = { path = "cartezcash-proxy", optional = true }
+cartezcash-proxy = { path = "cartezcash-proxy" }
 tower-cartesi = { path = "tower-cartesi" }
 
 

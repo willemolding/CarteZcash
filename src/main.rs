@@ -1,9 +1,8 @@
-<<<<<<< HEAD
+use cartezcash_proxy::{
+    proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
+    service_impl::CompactTxStreamerImpl,
+};
 use service::{CarteZcashService, Request};
-=======
-use service::{CarteZcashService, Request, Response};
-use tiny_cash::write::TinyCashWriteService;
->>>>>>> 8b4c727e6068c12c5e4a31199a298cd90fea35e5
 use std::env;
 use std::error::Error;
 use std::future::Future;
@@ -18,6 +17,9 @@ use zebra_consensus::transaction as tx;
 
 const DAPP_ADDRESS: &str = "70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C";
 
+type StateService = Buffer<BoxService<zebra_state::Request, zebra_state::Response, Box<dyn Error + Sync + Send>>, zebra_state::Request>;
+type StateReadService = Buffer<BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, Box<dyn Error + Sync + Send>>, zebra_state::ReadRequest>;
+
 mod service;
 
 #[tokio::main]
@@ -29,8 +31,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    print!(include_str!("ascii-logo.txt"));
-
+    let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
+    let grpc_addr = env::var("GRPC_SERVER_URL")?;
+    
     let network = Network::Mainnet;
 
     println!("Withdraw address is: {}", tiny_cash::mt_doom());
@@ -39,9 +42,26 @@ async fn main() -> Result<(), anyhow::Error> {
     tiny_cash::initialize_halo2();
     tracing::info!("Initializing Halo2 verifier key complete");
 
-    let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
+    let (state_service, state_read_service, _, _) = zebra_state::init(
+        zebra_state::Config::ephemeral(),
+        network,
+        block::Height::MAX,
+        0,
+    );
+    let state_service = Buffer::new(state_service, 30);
+    let state_read_service = Buffer::new(state_read_service.boxed(), 30);
 
-    let cartezcash_app = CarteZcashApp::new(network).await;
+    let cartezcash_app = CarteZcashApp::new(network, state_service, state_read_service.clone()).await;
+
+    let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
+    let addr = grpc_addr.parse()?;
+    let grpc_server = tonic::transport::Server::builder()
+        .trace_fn(|_| tracing::info_span!("cartezcash-grpc"))
+        .add_service(svc)
+        .serve(addr);
+    tokio::spawn(grpc_server);
+    tracing::info!("wallet GRPC server listening on {}", addr);
+
     let mut service = CartesiService::new(cartezcash_app);
     service.listen_http(&server_addr).await.unwrap();
 
@@ -53,15 +73,12 @@ struct CarteZcashApp {
 }
 
 impl CarteZcashApp {
-    pub async fn new(network: Network) -> Self {
+    pub async fn new(
+        network: Network,
+        state_service: StateService,
+        state_read_service: StateReadService,
+    ) -> Self {
         // set up the services needed to run the rollup
-        let (state_service, state_read_service, _, _) = zebra_state::init(
-            zebra_state::Config::ephemeral(),
-            network,
-            block::Height::MAX,
-            0,
-        );
-        let state_service = Buffer::new(state_service, 30);
         let verifier_service = tx::Verifier::new(network, state_service.clone());
         let mut tinycash = Buffer::new(
             BoxService::new(tiny_cash::write::TinyCashWriteService::new(
@@ -115,7 +132,7 @@ impl CartesiRollApp for CarteZcashApp {
         payload: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send>> {
         async move {
-            tracing::info!("Received inspect state request");
+            tracing::info!("Received inspect state request. Ignoring.");
             Ok(tower_cartesi::Response::empty_accept())
         }
         .boxed()

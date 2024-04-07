@@ -653,6 +653,7 @@ dependencies = [
  "json",
  "tiny-cash",
  "tokio",
+ "tonic",
  "tower",
  "tower-cartesi",
  "tracing",
