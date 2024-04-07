@@ -8,17 +8,15 @@ use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
 use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
-use tower_cartesi::{CartesiRollApp, CartesiService};
+use tower_cartesi::{BoxError, CartesiRollApp, CartesiService};
 
 use futures_util::future::FutureExt;
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
 
-const DAPP_ADDRESS: &str = "70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C";
-
-type StateService = Buffer<BoxService<zebra_state::Request, zebra_state::Response, Box<dyn Error + Sync + Send>>, zebra_state::Request>;
-type StateReadService = Buffer<BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, Box<dyn Error + Sync + Send>>, zebra_state::ReadRequest>;
+type StateService = Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>;
+type StateReadService = Buffer<BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, zebra_state::BoxError>, zebra_state::ReadRequest>;
 
 mod service;
 
@@ -63,7 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tracing::info!("wallet GRPC server listening on {}", addr);
 
     let mut service = CartesiService::new(cartezcash_app);
-    service.listen_http(&server_addr).await.unwrap();
+    service.listen_http(&server_addr).await.expect("Failed to start the rollup server");
 
     Ok(())
 }
@@ -104,18 +102,15 @@ impl CartesiRollApp for CarteZcashApp {
         &mut self,
         metadata: tower_cartesi::AdvanceStateMetadata,
         payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, BoxError>> + Send>> {
         let czk_request = Request::try_from((metadata, payload)).unwrap();
         let mut cartezcash_service = self.cartezcash.clone();
         async move {
             let burned = cartezcash_service
                 .ready()
-                .await
-                .unwrap()
+                .await?
                 .call(czk_request.clone())
-                .await
-                .map_err(|e| anyhow::anyhow!(e))
-                .unwrap();
+                .await?;
 
             let response = tower_cartesi::Response::empty_accept();
             if burned > 0 {
@@ -130,7 +125,7 @@ impl CartesiRollApp for CarteZcashApp {
     fn handle_inspect_state(
         &mut self,
         payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, Box<dyn Error>>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, BoxError>> + Send>> {
         async move {
             tracing::info!("Received inspect state request. Ignoring.");
             Ok(tower_cartesi::Response::empty_accept())
@@ -139,7 +134,7 @@ impl CartesiRollApp for CarteZcashApp {
     }
 }
 
-async fn initialize_network<S>(tinycash: &mut S) -> Result<(), anyhow::Error>
+async fn initialize_network<S>(tinycash: &mut S) -> Result<(), BoxError>
 where
     S: Service<
             tiny_cash::write::Request,
@@ -153,13 +148,8 @@ where
     // Mine the genesis block
     tinycash
         .ready()
-        .await
-        .unwrap()
+        .await?
         .call(tiny_cash::write::Request::Genesis)
-        .await
-        .unwrap();
-
-    // initialize the Halo2 verifier key
-
+        .await?;
     Ok(())
 }

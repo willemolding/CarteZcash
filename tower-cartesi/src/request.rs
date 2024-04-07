@@ -1,4 +1,5 @@
 //! Request a cartesi tower service must handle
+use std::error::Error;
 
 use crate::messages::{AdvanceStateMetadata, RollupRequest};
 
@@ -14,7 +15,7 @@ pub enum Request {
 }
 
 impl TryFrom<RollupRequest> for Request {
-    type Error = Box<dyn std::error::Error>;
+    type Error = Box<dyn Error + Send + Sync + 'static>;
 
     fn try_from(request: RollupRequest) -> Result<Self, Self::Error> {
         match request {

@@ -9,16 +9,17 @@ pub use messages::AdvanceStateMetadata;
 pub use request::Request;
 pub use response::Response;
 
+pub type BoxError = Box<dyn Error + Send + Sync + 'static>;
 pub trait CartesiRollApp {
     fn handle_advance_state(
         &mut self,
         metadata: messages::AdvanceStateMetadata,
         payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error + Send + Sync + 'static>>> + Send>>;
     fn handle_inspect_state(
         &mut self,
         payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error>>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Response, Box<dyn Error + Send + Sync + 'static>>> + Send>>;
 }
 
 pub struct CartesiService<S> {
@@ -30,7 +31,7 @@ impl<S: CartesiRollApp> CartesiService<S> {
         Self { inner }
     }
 
-    pub async fn listen_http(&mut self, host_uri: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn listen_http(&mut self, host_uri: &str) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         let client = hyper::Client::new();
 
         let mut response = Response::empty_accept();
@@ -65,12 +66,12 @@ impl<S: CartesiRollApp> CartesiService<S> {
 
 impl<S: CartesiRollApp> Service<Request> for CartesiService<S> {
     type Response = Response;
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync + 'static>;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn poll_ready(
         &mut self,
-        cx: &mut std::task::Context<'_>,
+        _cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
