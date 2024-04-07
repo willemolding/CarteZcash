@@ -642,7 +642,7 @@ dependencies = [
  "alloy-json-abi",
  "anyhow",
  "base64-url",
- "cartezcash-proxy",
+ "cartezcash-lightwalletd",
  "chrono",
  "ciborium",
  "ethabi",
@@ -665,7 +665,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cartezcash-proxy"
+name = "cartezcash-lightwalletd"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -1,4 +1,4 @@
-use cartezcash_proxy::{
+use cartezcash_lightwalletd::{
     proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
     service_impl::CompactTxStreamerImpl,
 };
@@ -33,7 +33,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
     let grpc_addr = env::var("GRPC_SERVER_URL")?;
-    
+
     let network = Network::Mainnet;
 
     println!("Withdraw address is: {}", tiny_cash::mt_doom());

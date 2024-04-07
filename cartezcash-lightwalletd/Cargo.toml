@@ -1,5 +1,5 @@
 [package]
-name = "cartezcash-proxy"
+name = "cartezcash-lightwalletd"
 version = "0.1.0"
 edition = "2021"
 authors = ["Willem Olding <willemolding@gmail.com>"]

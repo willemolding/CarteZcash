@@ -35,12 +35,12 @@ zebra-state = { workspace = true }
 zebra-consensus = { workspace = true }
 
 tiny-cash = { path = "tiny-cash" }
-cartezcash-proxy = { path = "cartezcash-proxy" }
+cartezcash-lightwalletd = { path = "cartezcash-lightwalletd" }
 tower-cartesi = { path = "tower-cartesi" }
 
 
 [workspace]
-members = [ "cartezcash-proxy", "tiny-cash", "tower-cartesi"]
+members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
 
 [workspace.dependencies]
 
