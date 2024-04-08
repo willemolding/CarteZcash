@@ -7,16 +7,23 @@ use std::env;
 use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
-use tower::{buffer::Buffer, util::BoxService, Service, ServiceExt};
-use tower_cartesi::{BoxError, CartesiRollApp, CartesiService};
+use std::task::{Context, Poll};
+use tower::{buffer::Buffer, util::BoxService, BoxError, Service, ServiceExt};
+use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
 use zebra_chain::{block, parameters::Network};
 use zebra_consensus::transaction as tx;
 
-type StateService = Buffer<BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>, zebra_state::Request>;
-type StateReadService = Buffer<BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, zebra_state::BoxError>, zebra_state::ReadRequest>;
+type StateService = Buffer<
+    BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
+    zebra_state::Request,
+>;
+type StateReadService = Buffer<
+    BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, zebra_state::BoxError>,
+    zebra_state::ReadRequest,
+>;
 
 mod service;
 
@@ -50,7 +57,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let state_service = Buffer::new(state_service, 30);
     let state_read_service = Buffer::new(state_read_service.boxed(), 30);
 
-    let cartezcash_app = CarteZcashApp::new(network, state_service, state_read_service.clone()).await;
+    let mut cartezcash_app =
+        CarteZcashApp::new(network, state_service, state_read_service.clone()).await;
 
     let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
     let addr = grpc_addr.parse()?;
@@ -61,8 +69,9 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::spawn(grpc_server);
     tracing::info!("wallet GRPC server listening on {}", addr);
 
-    let mut service = CartesiService::new(cartezcash_app);
-    service.listen_http(&server_addr).await.expect("Failed to start the rollup server");
+    listen_http(&mut cartezcash_app, &server_addr)
+        .await
+        .expect("Failed to start the rollup server");
 
     Ok(())
 }
@@ -98,40 +107,41 @@ impl CarteZcashApp {
     }
 }
 
-impl CartesiRollApp for CarteZcashApp {
-    fn handle_advance_state(
-        &mut self,
-        metadata: tower_cartesi::AdvanceStateMetadata,
-        payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, BoxError>> + Send>> {
-        let czk_request = Request::try_from((metadata, payload)).unwrap();
-        let mut cartezcash_service = self.cartezcash.clone();
-        async move {
-            let burned = cartezcash_service
-                .ready()
-                .await?
-                .call(czk_request.clone())
-                .await?;
+impl Service<RollAppRequest> for CarteZcashApp {
+    type Response = Response;
+    type Error = Box<dyn Error + Send + Sync>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
-            let response = tower_cartesi::Response::empty_accept();
-            if burned > 0 {
-                // add the voucher here
-            }
-
-            Ok(response)
-        }
-        .boxed()
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
-    fn handle_inspect_state(
-        &mut self,
-        payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<tower_cartesi::Response, BoxError>> + Send>> {
-        async move {
-            tracing::info!("Received inspect state request. Ignoring.");
-            Ok(tower_cartesi::Response::empty_accept())
+    fn call(&mut self, req: RollAppRequest) -> Self::Future {
+        match req {
+            RollAppRequest::AdvanceState { metadata, payload } => {
+                let czk_request = Request::try_from((metadata, payload)).unwrap();
+                let mut cartezcash_service = self.cartezcash.clone();
+                async move {
+                    let burned = cartezcash_service
+                        .ready()
+                        .await?
+                        .call(czk_request.clone())
+                        .await?;
+
+                    let response = tower_cartesi::Response::empty_accept();
+                    if burned > 0 {
+                        // add the voucher here
+                    }
+
+                    Ok(response)
+                }
+                .boxed()
+            }
+            RollAppRequest::InspectState { payload } => {
+                println!("Received inspect state request {:?}", payload);
+                async { Ok(tower_cartesi::Response::empty_accept()) }.boxed()
+            }
         }
-        .boxed()
     }
 }
 

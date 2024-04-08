@@ -1,49 +1,50 @@
-use futures_util::future::FutureExt;
 use std::env;
 use std::future::Future;
+use std::error::Error;
 use std::pin::Pin;
+use std::task::{Poll, Context};
+use futures_util::FutureExt;
 
-use tower_cartesi::{BoxError, CartesiRollApp, CartesiService, Response};
+use tower_service::Service;
+use tower_cartesi::{listen_http, Request, Response};
+
+type BoxError = Box<dyn Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .compact()
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)?;
-
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let mut service = CartesiService::new(EchoApp {});
-    service.listen_http(&server_addr).await?;
+    let mut app = EchoApp {};
+    listen_http(&mut app, &server_addr).await?;
 
     Ok(())
 }
 
 struct EchoApp;
 
-impl CartesiRollApp for EchoApp {
-    fn handle_advance_state(
+impl Service<Request> for EchoApp {
+    type Response = Response;
+    type Error = Box<dyn Error + Send + Sync>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(
         &mut self,
-        metadata: tower_cartesi::AdvanceStateMetadata,
-        _payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, BoxError>> + Send>> {
-        async move {
-            tracing::info!("Received advance state request {:?}", metadata);
-            Ok(tower_cartesi::Response::empty_accept())
-        }
-        .boxed()
+        _cx: &mut Context<'_>,
+    ) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
-    fn handle_inspect_state(
-        &mut self,
-        _payload: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Response, BoxError>> + Send>> {
-        async move {
-            tracing::info!("Received inspect state request");
-            Ok(tower_cartesi::Response::empty_accept())
+    fn call(&mut self, req: Request) -> Self::Future {
+        match req {
+            Request::AdvanceState { metadata, payload } => {
+                println!("Received advance state request {:?} \npayload {:?}:", metadata, payload);
+            }
+            Request::InspectState { payload } => {
+                println!("Received inspect state request {:?}", payload);
+            }
         }
-        .boxed()
+        async {
+            Ok(tower_cartesi::Response::empty_accept())
+        }.boxed()
     }
 }
