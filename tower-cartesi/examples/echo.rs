@@ -12,9 +12,17 @@ type BoxError = Box<dyn Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_max_level(tracing::Level::INFO)
+        .compact()
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)?;
+
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
     let mut app = EchoApp {};
+    tracing::info!("Listening on: {}", server_addr);
     listen_http(&mut app, &server_addr).await?;
 
     Ok(())
