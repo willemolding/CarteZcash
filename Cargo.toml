@@ -37,6 +37,10 @@ zebra-consensus = { workspace = true }
 tiny-cash = { path = "tiny-cash" }
 cartezcash-lightwalletd = { path = "cartezcash-lightwalletd" }
 tower-cartesi = { path = "tower-cartesi" }
+base58check = "0.1.0"
+zcash_address = "0.3.2"
+zcash_keys = { version = "0.2.0", features = ["orchard"] }
+zcash_primitives = "0.15.0"
 
 
 [workspace]
@@ -45,10 +49,16 @@ members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
 [workspace.dependencies]
 
 # patched zebra crates to support TinyCash network and expose things we need
-zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+# zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+# zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+# zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+# zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+
+zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
+zebra-state = { path = "../zebra/zebra-state", default-features = false }
+zebra-test = { path = "../zebra/zebra-test", default-features = false }
+zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
+
 
 [patch.crates-io]
 # Ring needed to be patched as while the current version supports riscv, the version used by Zebra doesn't.

@@ -8,7 +8,7 @@ use std::{
 };
 use tower::{Service, ServiceExt};
 
-use zebra_chain::transaction::Transaction;
+use zebra_chain::{transaction::{Memo, Transaction}, transparent::Script};
 use zebra_chain::transparent;
 use zebra_chain::{
     amount::{Amount, NonNegative},
@@ -20,7 +20,7 @@ use zebra_chain::{
 use zebra_chain::{block, serialization::ZcashDeserialize};
 use zebra_consensus::transaction as tx;
 
-use crate::mt_doom;
+use crate::extract_burn_info;
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
@@ -56,7 +56,7 @@ pub struct Response {
     ///The block that was added by this state transition
     pub block: block::Block,
     /// The amount of coins that were burned by the transaction (if any) by transferring to the Mt Doom address (0x000...000)
-    pub burned: Amount<NonNegative>,
+    pub burns: Vec<(Amount<NonNegative>, Memo)>,
 }
 
 impl<S, V> tower::Service<Request> for TinyCashWriteService<S, V>
@@ -96,7 +96,7 @@ where
         let mut transaction_verifier = self.tx_verifier_service.clone();
 
         async move {
-            let (block, height, burned) = match req {
+            let (block, height, burns) = match req {
                 Request::Genesis => {
                     (
                         Block::zcash_deserialize(
@@ -104,7 +104,7 @@ where
                         )
                         .unwrap(),
                         Height(0),
-                        Amount::zero(),
+                        Vec::new(),
                     ) // here is one I prepared earlier :)
                 }
                 _ => {
@@ -125,27 +125,23 @@ where
                     // For a mint event this will also be used to mint new coins
                     // otherwise it is just an empty txn
                     // also keep track of if any coins were burned by sending to the mt doom script
-                    let (transactions, burned) = match req {
+                    let (transactions, burns) = match req {
                         Request::Genesis => {
                             unreachable!("genesis block is handled prior")
                         }
                         Request::Mint { amount, to } => {
                             let coinbase_tx = mint_coinbase_txn(amount, &to, height);
-                            let burned = Amount::zero(); // FIX: It is conceivable that the minted coins sent straight to Mt Doom. Should handle this case
-                            (vec![Arc::new(coinbase_tx)], burned)
+                            let burns = Vec::new();
+                            (vec![Arc::new(coinbase_tx)], burns)
                         }
                         Request::IncludeTransaction { transaction } => {
                             let coinbase_tx = empty_coinbase_txn(height);
-                            let burned = transaction
-                                .outputs()
-                                .iter()
-                                .filter(|output| {
-                                    output.lock_script == mt_doom().create_script_from_address()
-                                })
-                                .map(|output| output.value)
-                                .reduce(|total, elem| (total + elem).expect("overflow"))
-                                .unwrap_or(Amount::zero());
-                            (vec![Arc::new(coinbase_tx), Arc::new(transaction)], burned)
+                            // check for withdrawals here
+                            let burns = transaction
+                                .orchard_actions()
+                                .filter_map(extract_burn_info)
+                                .collect();
+                            (vec![Arc::new(coinbase_tx), Arc::new(transaction)], burns)
                         }
                     };
 
@@ -164,7 +160,7 @@ where
                         .into(),
                         transactions: transactions.clone(),
                     };
-                    (block, height, burned)
+                    (block, height, burns)
                 }
             };
 
@@ -236,7 +232,7 @@ where
             }
 
             // return the info about the new block
-            Ok(Response { block: ret, burned })
+            Ok(Response { block: ret, burns })
         }
         .boxed()
     }
@@ -259,7 +255,7 @@ fn mint_coinbase_txn(
 fn empty_coinbase_txn(height: Height) -> Transaction {
     mint_coinbase_txn(
         Amount::zero(),
-        &mt_doom().create_script_from_address(),
+        &Script::new(&[0x0; 32]),
         height,
     )
 }

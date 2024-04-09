@@ -1,46 +1,53 @@
 use futures_util::future::FutureExt;
 use std::future::Future;
 use std::pin::Pin;
-use tower::{Service, ServiceExt};
+use tower::{BoxError, Service, ServiceExt};
+use zebra_chain::amount::{Amount, NonNegative};
 
 pub use request::Request;
 
 mod request;
-pub struct CarteZcashService<S, SR> {
+pub struct CarteZcashService<S> {
     tiny_cash: S,
-    state_read_service: SR,
 }
 
-impl<S, SR> CarteZcashService<S, SR> {
-    pub fn new(tiny_cash: S, state_read_service: SR) -> Self {
+pub struct Response {
+    pub withdrawals: Vec<(ethereum_types::Address, ethereum_types::U256)>,
+}
+
+impl<S> CarteZcashService<S> {
+    pub fn new(tiny_cash: S) -> Self {
+        Self { tiny_cash }
+    }
+}
+
+impl From<tiny_cash::write::Response> for Response {
+    fn from(res: tiny_cash::write::Response) -> Self {
         Self {
-            tiny_cash,
-            state_read_service,
+            withdrawals: res
+                .burns
+                .iter()
+                .map(|(amount, memo)| {
+                    (
+                        ethereum_types::Address::from_slice(&memo.0[..20]),
+                        ethereum_types::U256::from(amount.zatoshis()),
+                    )
+                })
+                .collect(),
         }
     }
 }
 
-impl<S, SR> Service<Request> for CarteZcashService<S, SR>
+impl<S> Service<Request> for CarteZcashService<S>
 where
-    S: Service<
-            tiny_cash::write::Request,
-            Response = tiny_cash::write::Response,
-            Error = tiny_cash::write::BoxError,
-        > + Send
+    S: Service<tiny_cash::write::Request, Response = tiny_cash::write::Response, Error = BoxError>
+        + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,
-    SR: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Send
-        + Clone
-        + 'static,
-    SR::Future: Send + 'static,
 {
-    type Response = u64;
-    type Error = tiny_cash::write::BoxError;
+    type Response = Response;
+    type Error = BoxError;
     type Future =
         Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
 
@@ -65,7 +72,10 @@ where
                             to: to.create_script_from_address(),
                         })
                         .await
-                        .map(|res| res.burned.into())
+                        .map(|res| {
+                            tracing::info!("detected burns: {:?}", res.burns);
+                            res.into()
+                        })
                 }
                 Request::Transact { txn, .. } => {
                     tracing::debug!("handling transact request for txn {:?}", txn);
@@ -74,7 +84,10 @@ where
                         .await?
                         .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                         .await
-                        .map(|res| res.burned.into())
+                        .map(|res| {
+                            tracing::info!("detected burns: {:?}", res.burns);
+                            res.into()
+                        })
                 }
             }
         }

@@ -15,7 +15,6 @@ pub enum Request {
         to: Address,
     },
     Transact {
-        withdraw_address: ethereum_types::Address,
         txn: Transaction,
     },
 }
@@ -67,18 +66,14 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                     transaction bytes // arbitrary size
                  */
 
-                let withdraw_address = ethereum_types::Address::zero();
-
                 let txn = zebra_chain::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
 
                 tracing::info!(
-                    "Received transaction request {} send burns to {}",
-                    txn.hash(),
-                    withdraw_address
+                    "Received transaction request {}",
+                    txn.hash()
                 );
 
                 Ok(Request::Transact {
-                    withdraw_address,
                     txn,
                 })
             }
@@ -94,14 +89,12 @@ impl std::fmt::Debug for Request {
                 write!(f, "Deposit {} to {}", amount, to)
             }
             Request::Transact {
-                withdraw_address,
                 txn,
             } => {
                 write!(
                     f,
-                    "Transact hash {} with withdrawal address {}",
+                    "Transact hash {}",
                     txn.hash(),
-                    withdraw_address
                 )
             }
         }
