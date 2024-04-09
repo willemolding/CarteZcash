@@ -37,6 +37,10 @@ zebra-consensus = { workspace = true }
 tiny-cash = { path = "tiny-cash" }
 cartezcash-lightwalletd = { path = "cartezcash-lightwalletd" }
 tower-cartesi = { path = "tower-cartesi" }
+base58check = "0.1.0"
+zcash_address = "0.3.2"
+zcash_keys = { version = "0.2.0", features = ["orchard"] }
+zcash_primitives = "0.15.0"
 
 
 [workspace]

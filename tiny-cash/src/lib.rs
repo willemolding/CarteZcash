@@ -1,5 +1,5 @@
 use orchard::{
-    keys::{FullViewingKey, IncomingViewingKey, PreparedIncomingViewingKey, Scope},
+    keys::{FullViewingKey, IncomingViewingKey, PreparedIncomingViewingKey, Scope, SpendingKey},
     note::{ExtractedNoteCommitment, Nullifier},
     note_encryption::OrchardDomain,
 };
@@ -11,6 +11,7 @@ use zebra_chain::{
     orchard::Action,
     transaction::Memo,
 };
+use zebra_state::IntoDisk;
 
 #[cfg(test)]
 mod test;
@@ -18,21 +19,24 @@ pub mod write;
 
 // outputs send to this address cannot be recovered and are considered burned
 pub fn mt_doom_address() -> orchard::Address {
-    FullViewingKey::from_bytes(&[0_u8; 96])
-        .unwrap()
-        .address_at(0_usize, Scope::External)
+    mt_doom().address_at(0_usize, Scope::External)
 }
 
 pub fn mt_doom_ivk() -> IncomingViewingKey {
-    FullViewingKey::from_bytes(&[0_u8; 96])
-        .unwrap()
-        .to_ivk(Scope::External)
+    mt_doom().to_ivk(Scope::External)
+}
+
+fn mt_doom() -> FullViewingKey {
+    // TODO: This is a disaster waiting to happen. Anyone can spend from this address rather than no one!
+    // We want an address with a known FVK but an known Spending key. This actually should be pretty easy to do
+    let sk = SpendingKey::from_bytes([0x0; 32]).unwrap();
+    FullViewingKey::from(&sk)
 }
 
 // Attempt to decrypt action. It it was encrypted to Mt Doom address, return the amount and memo
 pub fn extract_burn_info(action: &Action) -> Option<(Amount<NonNegative>, Memo)> {
     try_note_decryption(
-        &OrchardDomain::for_compact_action(&dummy_action()),
+        &OrchardDomain::for_compact_action(&&compact_action_from(action)),
         &PreparedIncomingViewingKey::new(&mt_doom_ivk()),
         &DecryptableAction(action.clone()),
     )
@@ -66,11 +70,11 @@ pub fn initialize_halo2() {
     lazy_static::initialize(&zebra_consensus::halo2::VERIFYING_KEY);
 }
 
-fn dummy_action() -> orchard::note_encryption::CompactAction {
+fn compact_action_from(action: &Action) -> orchard::note_encryption::CompactAction {
     orchard::note_encryption::CompactAction::from_parts(
-        Nullifier::from_bytes(&[0_u8; 32]).unwrap(),
-        ExtractedNoteCommitment::from_bytes(&[0_u8; 32]).unwrap(),
-        EphemeralKeyBytes([0_u8; 32]),
-        [0_u8; 52],
+        Nullifier::from_bytes(&action.nullifier.as_bytes()).unwrap(),
+        ExtractedNoteCommitment::from_bytes(&action.cm_x.into()).unwrap(),
+        EphemeralKeyBytes(action.ephemeral_key.into()),
+        action.enc_ciphertext.0[..52].try_into().unwrap(),
     )
 }

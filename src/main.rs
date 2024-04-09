@@ -3,6 +3,9 @@ use cartezcash_lightwalletd::{
     service_impl::CompactTxStreamerImpl,
 };
 use service::{CarteZcashService, Request};
+use zcash_keys::address::UnifiedAddress;
+use zcash_primitives::consensus::MAIN_NETWORK;
+
 use std::env;
 use std::error::Error;
 use std::future::Future;
@@ -41,7 +44,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let network = Network::Mainnet;
 
-    println!("Withdraw address is: {:?}", tiny_cash::mt_doom_address());
+    println!("Withdraw address is: {}", UnifiedAddress::from_receivers(Some(tiny_cash::mt_doom_address()), None).unwrap().encode(&MAIN_NETWORK));
 
     // TODO: Enable this when not debugging
     // tracing::info!("Initializing Halo2 verifier key");
