@@ -3,7 +3,6 @@ use std::future::Future;
 use std::pin::Pin;
 use tower::{BoxError, Service, ServiceExt};
 
-
 pub use request::Request;
 
 mod request;
