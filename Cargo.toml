@@ -49,15 +49,16 @@ members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
 [workspace.dependencies]
 
 # patched zebra crates to support TinyCash network and expose things we need
-# zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-# zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-# zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
-# zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa146fc702878ca84f63fe5c32898ffbdfcc", default-features = false }
+zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
+zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
+zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
+zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
 
-zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
-zebra-state = { path = "../zebra/zebra-state", default-features = false }
-zebra-test = { path = "../zebra/zebra-test", default-features = false }
-zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
+# uncomment for local dev when modifying zebra
+# zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
+# zebra-state = { path = "../zebra/zebra-state", default-features = false }
+# zebra-test = { path = "../zebra/zebra-test", default-features = false }
+# zebra-chain = { path = "../zebra/zebra-chain", default-features = false }
 
 
 [patch.crates-io]
