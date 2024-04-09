@@ -66,16 +66,12 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                     transaction bytes // arbitrary size
                  */
 
-                let txn = zebra_chain::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
+                let txn =
+                    zebra_chain::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
 
-                tracing::info!(
-                    "Received transaction request {}",
-                    txn.hash()
-                );
+                tracing::info!("Received transaction request {}", txn.hash());
 
-                Ok(Request::Transact {
-                    txn,
-                })
+                Ok(Request::Transact { txn })
             }
             _ => anyhow::bail!("unrecognised sender {}", metadata.msg_sender.to_string()),
         }
@@ -88,14 +84,8 @@ impl std::fmt::Debug for Request {
             Request::Deposit { amount, to } => {
                 write!(f, "Deposit {} to {}", amount, to)
             }
-            Request::Transact {
-                txn,
-            } => {
-                write!(
-                    f,
-                    "Transact hash {}",
-                    txn.hash(),
-                )
+            Request::Transact { txn } => {
+                write!(f, "Transact hash {}", txn.hash(),)
             }
         }
     }

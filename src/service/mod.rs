@@ -2,7 +2,6 @@ use futures_util::future::FutureExt;
 use std::future::Future;
 use std::pin::Pin;
 use tower::{BoxError, Service, ServiceExt};
-use zebra_chain::amount::{Amount, NonNegative};
 
 pub use request::Request;
 

@@ -14,11 +14,11 @@ use crate::proto::compact_formats::*;
 use crate::proto::service::compact_tx_streamer_server::CompactTxStreamer;
 use crate::proto::service::*;
 
+use ethers::middleware::SignerMiddleware;
 use ethers::prelude::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, Bytes};
-use ethers::middleware::SignerMiddleware;
 
 abigen!(
     IInputBox,
@@ -57,13 +57,15 @@ where
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
         tracing::info!("send_transaction called. Fowarding to InputBox contract");
 
-        let provider =
-            Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
+        let provider = Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
         let wallet: LocalWallet =
             "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
                 .parse()
                 .unwrap();
-        let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet.with_chain_id(31337_u64)));
+        let client = std::sync::Arc::new(SignerMiddleware::new(
+            provider,
+            wallet.with_chain_id(31337_u64),
+        ));
 
         // Instantiate the contract
         let contract = IInputBox::new(

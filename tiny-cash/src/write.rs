@@ -8,7 +8,6 @@ use std::{
 };
 use tower::{Service, ServiceExt};
 
-use zebra_chain::{transaction::{Memo, Transaction}, transparent::Script};
 use zebra_chain::transparent;
 use zebra_chain::{
     amount::{Amount, NonNegative},
@@ -18,6 +17,10 @@ use zebra_chain::{
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
+use zebra_chain::{
+    transaction::{Memo, Transaction},
+    transparent::Script,
+};
 use zebra_consensus::transaction as tx;
 
 use crate::extract_burn_info;
@@ -253,9 +256,5 @@ fn mint_coinbase_txn(
 }
 
 fn empty_coinbase_txn(height: Height) -> Transaction {
-    mint_coinbase_txn(
-        Amount::zero(),
-        &Script::new(&[0x0; 32]),
-        height,
-    )
+    mint_coinbase_txn(Amount::zero(), &Script::new(&[0x0; 32]), height)
 }

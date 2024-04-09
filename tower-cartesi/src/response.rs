@@ -17,7 +17,10 @@ impl Response {
     }
 
     pub fn add_voucher(&mut self, destination: ethereum_types::Address, payload: &[u8]) {
-        self.outputs.push(Output::Voucher{destination, payload: payload.to_vec() });
+        self.outputs.push(Output::Voucher {
+            destination,
+            payload: payload.to_vec(),
+        });
     }
 
     pub fn finish_message(&self) -> Finish {

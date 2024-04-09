@@ -43,7 +43,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let network = Network::Mainnet;
 
-    println!("Withdraw address is: {}", UnifiedAddress::from_receivers(Some(tiny_cash::mt_doom_address()), None).unwrap().encode(&MAIN_NETWORK));
+    println!(
+        "Withdraw address is: {}",
+        UnifiedAddress::from_receivers(Some(tiny_cash::mt_doom_address()), None)
+            .unwrap()
+            .encode(&MAIN_NETWORK)
+    );
 
     // TODO: Enable this when not debugging
     // tracing::info!("Initializing Halo2 verifier key");
@@ -59,8 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let state_service = Buffer::new(state_service, 30);
     let state_read_service = Buffer::new(state_read_service.boxed(), 30);
 
-    let mut cartezcash_app =
-        CarteZcashApp::new(network, state_service).await;
+    let mut cartezcash_app = CarteZcashApp::new(network, state_service).await;
 
     let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
     let addr = grpc_addr.parse()?;
@@ -79,14 +83,12 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 struct CarteZcashApp {
-    cartezcash: Buffer<BoxService<Request, service::Response, Box<dyn Error + Sync + Send>>, Request>,
+    cartezcash:
+        Buffer<BoxService<Request, service::Response, Box<dyn Error + Sync + Send>>, Request>,
 }
 
 impl CarteZcashApp {
-    pub async fn new(
-        network: Network,
-        state_service: StateService,
-    ) -> Self {
+    pub async fn new(network: Network, state_service: StateService) -> Self {
         // set up the services needed to run the rollup
         let verifier_service = tx::Verifier::new(network, state_service.clone());
         let mut tinycash = Buffer::new(
@@ -100,10 +102,7 @@ impl CarteZcashApp {
         initialize_network(&mut tinycash).await.unwrap();
 
         Self {
-            cartezcash: Buffer::new(
-                BoxService::new(CarteZcashService::new(tinycash)),
-                10,
-            ),
+            cartezcash: Buffer::new(BoxService::new(CarteZcashService::new(tinycash)), 10),
         }
     }
 }
