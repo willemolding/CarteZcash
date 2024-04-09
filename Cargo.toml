@@ -49,10 +49,10 @@ members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
 [workspace.dependencies]
 
 # patched zebra crates to support TinyCash network and expose things we need
-zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
-zebra-state = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
-zebra-test = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
-zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "a8d1aa14", default-features = false }
+zebra-consensus = { git = "https://github.com/willemolding/zebra", rev = "185e404bed938e3aa916aee1ae6999a70efceddb", default-features = false }
+zebra-state = { git = "https://github.com/willemolding/zebra", rev = "185e404bed938e3aa916aee1ae6999a70efceddb", default-features = false }
+zebra-test = { git = "https://github.com/willemolding/zebra", rev = "185e404bed938e3aa916aee1ae6999a70efceddb", default-features = false }
+zebra-chain = { git = "https://github.com/willemolding/zebra", rev = "185e404bed938e3aa916aee1ae6999a70efceddb", default-features = false }
 
 # uncomment for local dev when modifying zebra
 # zebra-consensus = { path = "../zebra/zebra-consensus", default-features = false }
