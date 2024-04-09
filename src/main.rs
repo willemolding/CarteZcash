@@ -33,7 +33,6 @@ mod service;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let subscriber = tracing_subscriber::fmt()
-        .without_time()
         .with_max_level(tracing::Level::INFO)
         .compact()
         .finish();
@@ -61,7 +60,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let state_read_service = Buffer::new(state_read_service.boxed(), 30);
 
     let mut cartezcash_app =
-        CarteZcashApp::new(network, state_service, state_read_service.clone()).await;
+        CarteZcashApp::new(network, state_service).await;
 
     let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
     let addr = grpc_addr.parse()?;
@@ -80,14 +79,13 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 struct CarteZcashApp {
-    cartezcash: Buffer<BoxService<Request, u64, Box<dyn Error + Sync + Send>>, Request>,
+    cartezcash: Buffer<BoxService<Request, service::Response, Box<dyn Error + Sync + Send>>, Request>,
 }
 
 impl CarteZcashApp {
     pub async fn new(
         network: Network,
         state_service: StateService,
-        state_read_service: StateReadService,
     ) -> Self {
         // set up the services needed to run the rollup
         let verifier_service = tx::Verifier::new(network, state_service.clone());
@@ -103,7 +101,7 @@ impl CarteZcashApp {
 
         Self {
             cartezcash: Buffer::new(
-                BoxService::new(CarteZcashService::new(tinycash, state_read_service)),
+                BoxService::new(CarteZcashService::new(tinycash)),
                 10,
             ),
         }
@@ -125,18 +123,18 @@ impl Service<RollAppRequest> for CarteZcashApp {
                 let czk_request = Request::try_from((metadata, payload)).unwrap();
                 let mut cartezcash_service = self.cartezcash.clone();
                 async move {
-                    let burned = cartezcash_service
+                    let response = cartezcash_service
                         .ready()
                         .await?
                         .call(czk_request.clone())
                         .await?;
 
-                    let response = tower_cartesi::Response::empty_accept();
-                    if burned > 0 {
-                        // add the voucher here
+                    let resp = tower_cartesi::Response::empty_accept();
+                    for withdrawal in response.withdrawals {
+                        // TODO: Build vouchers and add to response
+                        tracing::info!("Withdrawal: {:?}", withdrawal);
                     }
-
-                    Ok(response)
+                    Ok(resp)
                 }
                 .boxed()
             }
