@@ -65,7 +65,10 @@ where
                             to: to.create_script_from_address(),
                         })
                         .await
-                        .map(|res| res.burned.into())
+                        .map(|res| {
+                            tracing::info!("detected burns: {:?}", res.burns);
+                            0
+                        })
                 }
                 Request::Transact { txn, .. } => {
                     tracing::debug!("handling transact request for txn {:?}", txn);
@@ -74,7 +77,10 @@ where
                         .await?
                         .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
                         .await
-                        .map(|res| res.burned.into())
+                        .map(|res| {
+                            tracing::info!("detected burns: {:?}", res.burns);
+                            0
+                        })
                 }
             }
         }

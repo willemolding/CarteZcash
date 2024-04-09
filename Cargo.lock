@@ -3127,6 +3127,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "orchard"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0462569fc8b0d1b158e4d640571867a4e4319225ebee2ab6647e60c70af19ae3"
+dependencies = [
+ "aes",
+ "bitvec 1.0.1",
+ "blake2b_simd",
+ "ff 0.13.0",
+ "fpe",
+ "group 0.13.0",
+ "halo2_gadgets",
+ "halo2_proofs",
+ "hex",
+ "incrementalmerkletree",
+ "lazy_static",
+ "memuse",
+ "nonempty",
+ "pasta_curves",
+ "rand",
+ "reddsa",
+ "serde",
+ "subtle",
+ "tracing",
+ "zcash_note_encryption",
+ "zcash_spec",
+ "zip32",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4616,10 +4646,12 @@ dependencies = [
  "futures-util",
  "hex",
  "lazy_static",
+ "orchard 0.8.0",
  "tokio",
  "tower",
  "tracing",
  "tracing-test",
+ "zcash_note_encryption",
  "zebra-chain",
  "zebra-consensus",
  "zebra-state",
@@ -4813,7 +4845,6 @@ dependencies = [
 [[package]]
 name = "tower-batch-control"
 version = "0.2.41-beta.11"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "futures",
  "futures-core",
@@ -4847,7 +4878,6 @@ dependencies = [
 [[package]]
 name = "tower-fallback"
 version = "0.2.41-beta.11"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "futures-core",
  "pin-project",
@@ -5621,7 +5651,7 @@ dependencies = [
  "lazy_static",
  "memuse",
  "nonempty",
- "orchard",
+ "orchard 0.6.0",
  "rand",
  "rand_core",
  "ripemd",
@@ -5687,7 +5717,7 @@ dependencies = [
  "libc",
  "memuse",
  "metrics 0.21.1",
- "orchard",
+ "orchard 0.6.0",
  "rand",
  "rand_core",
  "rayon",
@@ -5702,9 +5732,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "zcash_spec"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7a3bf58b673cb3dacd8ae09ba345998923a197ab0da70d6239d8e8838949e9b"
+dependencies = [
+ "blake2b_simd",
+]
+
+[[package]]
 name = "zebra-chain"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bitflags 2.5.0",
  "bitflags-serde-legacy",
@@ -5728,7 +5766,7 @@ dependencies = [
  "jubjub",
  "lazy_static",
  "num-integer",
- "orchard",
+ "orchard 0.6.0",
  "primitive-types 0.11.1",
  "proptest",
  "proptest-derive",
@@ -5762,7 +5800,6 @@ dependencies = [
 [[package]]
 name = "zebra-consensus"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bellman",
  "blake2b_simd",
@@ -5776,7 +5813,7 @@ dependencies = [
  "lazy_static",
  "metrics 0.22.3",
  "once_cell",
- "orchard",
+ "orchard 0.6.0",
  "rand",
  "rayon",
  "serde",
@@ -5798,7 +5835,6 @@ dependencies = [
 [[package]]
 name = "zebra-node-services"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "zebra-chain",
 ]
@@ -5806,7 +5842,6 @@ dependencies = [
 [[package]]
 name = "zebra-script"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "displaydoc",
  "thiserror",
@@ -5817,7 +5852,6 @@ dependencies = [
 [[package]]
 name = "zebra-state"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "bincode",
  "chrono",
@@ -5851,7 +5885,6 @@ dependencies = [
 [[package]]
 name = "zebra-test"
 version = "1.0.0-beta.35"
-source = "git+https://github.com/willemolding/zebra?rev=a8d1aa146fc702878ca84f63fe5c32898ffbdfcc#a8d1aa146fc702878ca84f63fe5c32898ffbdfcc"
 dependencies = [
  "color-eyre",
  "futures",
@@ -5914,4 +5947,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.53",
+]
+
+[[package]]
+name = "zip32"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4226d0aee9c9407c27064dfeec9d7b281c917de3374e1e5a2e2cfad9e09de19e"
+dependencies = [
+ "blake2b_simd",
+ "memuse",
+ "subtle",
 ]

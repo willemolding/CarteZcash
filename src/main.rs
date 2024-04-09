@@ -41,7 +41,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let network = Network::Mainnet;
 
-    println!("Withdraw address is: {}", tiny_cash::mt_doom());
+    println!("Withdraw address is: {:?}", tiny_cash::mt_doom_address());
 
     // TODO: Enable this when not debugging
     // tracing::info!("Initializing Halo2 verifier key");
