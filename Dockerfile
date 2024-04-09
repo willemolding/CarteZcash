@@ -60,7 +60,7 @@ RUN cargo build --release  --target riscv64gc-unknown-linux-gnu
 
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
-LABEL io.sunodo.sdk_version=0.2.0
+LABEL io.sunodo.sdk_version=0.3.0
 LABEL io.cartesi.rollups.ram_size=128Mi
 
 ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
