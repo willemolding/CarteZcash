@@ -4263,6 +4263,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "hex",
+ "incrementalmerkletree",
  "lazy_static",
  "orchard 0.8.0",
  "tokio",
@@ -4464,6 +4465,7 @@ dependencies = [
 [[package]]
 name = "tower-batch-control"
 version = "0.2.41-beta.11"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "futures",
  "futures-core",
@@ -4497,6 +4499,7 @@ dependencies = [
 [[package]]
 name = "tower-fallback"
 version = "0.2.41-beta.11"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "futures-core",
  "pin-project",
@@ -5409,6 +5412,7 @@ dependencies = [
 [[package]]
 name = "zebra-chain"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "bitflags 2.5.0",
  "bitflags-serde-legacy",
@@ -5466,6 +5470,7 @@ dependencies = [
 [[package]]
 name = "zebra-consensus"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "bellman",
  "blake2b_simd",
@@ -5501,6 +5506,7 @@ dependencies = [
 [[package]]
 name = "zebra-node-services"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "zebra-chain",
 ]
@@ -5508,6 +5514,7 @@ dependencies = [
 [[package]]
 name = "zebra-script"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "displaydoc",
  "thiserror",
@@ -5518,6 +5525,7 @@ dependencies = [
 [[package]]
 name = "zebra-state"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "bincode",
  "chrono",
@@ -5551,6 +5559,7 @@ dependencies = [
 [[package]]
 name = "zebra-test"
 version = "1.0.0-beta.35"
+source = "git+https://github.com/willemolding/zebra?rev=04615946f3bae4e39925edae8ed1e150b7cf531a#04615946f3bae4e39925edae8ed1e150b7cf531a"
 dependencies = [
  "color-eyre",
  "futures",
