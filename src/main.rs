@@ -64,7 +64,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
     let state_service = Buffer::new(state_service, 30);
 
-    let mut cartezcash_app = CarteZcashApp::new(network, state_service).await;
+    let mut cartezcash_app = CarteZcashApp::new(state_service).await;
 
     #[cfg(feature = "lightwalletd")]
     {
@@ -93,13 +93,11 @@ struct CarteZcashApp {
 }
 
 impl CarteZcashApp {
-    pub async fn new(network: Network, state_service: StateService) -> Self {
+    pub async fn new(state_service: StateService) -> Self {
         // set up the services needed to run the rollup
-        let verifier_service = tx::Verifier::new(network, state_service.clone());
         let mut tinycash = Buffer::new(
             BoxService::new(tiny_cash::write::TinyCashWriteService::new(
                 state_service,
-                verifier_service,
             )),
             10,
         );

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     future::Future,
     pin::Pin,
     sync::Arc,
@@ -15,6 +15,7 @@ use zebra_chain::{
     fmt::HexDebug,
     parameters::{Network, NetworkUpgrade},
     transaction::HashType,
+    transparent::{OrderedUtxo, OutPoint, Utxo},
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
@@ -31,22 +32,26 @@ use crate::extract_burn_info;
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-pub struct TinyCashWriteService<S, V> {
+pub struct TinyCashWriteService<S> {
     state_service: S,
-    tx_verifier_service: V,
 
     tip_height: Option<Height>,
     tip_hash: Option<block::Hash>,
+
+    // Set of all unspent transparent outputs.
+    // This is expected to grow but very slowly since transparent outputs are only created
+    // by deposits and destroyed by subsequent spends.
+    utxos_set: HashMap<OutPoint, OrderedUtxo>,
 }
 
-impl<S, V> TinyCashWriteService<S, V> {
-    pub fn new(state_service: S, tx_verifier_service: V) -> Self {
+impl<S> TinyCashWriteService<S> {
+    pub fn new(state_service: S) -> Self {
         Self {
             state_service,
-            tx_verifier_service,
 
             tip_height: None,
             tip_hash: None,
+            utxos_set: HashMap::new(),
         }
     }
 }
@@ -72,7 +77,7 @@ pub struct Response {
     pub burns: Vec<(Amount<NonNegative>, Memo)>,
 }
 
-impl<S, V> tower::Service<Request> for TinyCashWriteService<S, V>
+impl<S> tower::Service<Request> for TinyCashWriteService<S>
 where
     S: Service<
             zebra_state::Request,
@@ -84,16 +89,6 @@ where
         + 'static
         + Clone,
     S::Future: Send + 'static,
-    V: Service<
-            tx::Request,
-            Response = tx::Response,
-            Error = zebra_consensus::error::TransactionError,
-        >
-        + Send
-        + Clone
-        + 'static
-        + Clone,
-    V::Future: Send + 'static,
 {
     type Response = Response;
     type Error = BoxError;
@@ -106,7 +101,6 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let mut state_service = self.state_service.clone();
-        let mut tx_verifier_service = self.tx_verifier_service.clone();
 
         let tip_height = self.tip_height;
         let previous_block_hash = self.tip_hash.unwrap_or(Default::default());
@@ -136,35 +130,37 @@ where
 
         let ret = block.clone();
         let block_hash = block.hash();
+
+        self.tip_hash = Some(block_hash);
+        self.tip_height = Some(height);
+        let outputs_spent = if let Some(tx) = tx_to_verify.as_ref() {
+            self.outputs_spent_by_transaction(tx.clone().into())
+        } else {
+            Vec::new()
+        };
+
+        // build the set of new UTXOs this block creates and add to the global state
         let transaction_hashes: Arc<[_]> = block.transactions.iter().map(|t| t.hash()).collect();
         let known_utxos = Arc::new(transparent::new_ordered_outputs(
             &block,
             &transaction_hashes,
         ));
-
-        self.tip_hash = Some(block_hash);
-        self.tip_height = Some(height);
+        let new_outputs = Arc::into_inner(known_utxos)
+            .expect("all verification tasks using known_utxos are complete");
+        tracing::info!("Adding new UTXOs to the set: {:?}", new_outputs);
+        self.utxos_set
+            .extend(new_outputs.iter().map(|(k, v)| (k.clone(), v.clone())));
 
         async move {
             if height > Height(0) {
                 // verify the transaction if required
                 if let Some(tx) = tx_to_verify {
-                    tx_verifier_service
-                        .ready()
-                        .await
-                        .expect("transaction verifier is always ready")
-                        .call(tx::Request::Block {
-                            transaction: tx.into(),
-                            known_utxos: std::default::Default::default(),
-                            height,
-                            time: DateTime::<Utc>::default(),
-                        })
-                        .await?;
+                    tracing::info!("Verifying transaction");
+                    Self::verify_transaction(tx.into(), height, outputs_spent.as_slice()).await?;
+                    tracing::info!("Transaction passed!");
                 }
 
                 // contextually verify and commit the block
-                let new_outputs = Arc::into_inner(known_utxos)
-                    .expect("all verification tasks using known_utxos are complete");
                 let prepared_block = zebra_state::SemanticallyVerifiedBlock {
                     block: block.into(),
                     hash: block_hash,
@@ -205,7 +201,24 @@ where
     }
 }
 
-impl<S, V> TinyCashWriteService<S, V>
+impl<S> TinyCashWriteService<S> {
+    pub fn outputs_spent_by_transaction(&self, tx: Arc<Transaction>) -> Vec<transparent::Output> {
+        tx.inputs()
+            .iter()
+            .filter_map(|input| {
+                if let Some(outpoint) = input.outpoint() {
+                    self.utxos_set
+                        .get(&outpoint)
+                        .map(|utxo| utxo.as_ref().output.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
+impl<S> TinyCashWriteService<S>
 where
     S: Service<
             zebra_state::Request,
