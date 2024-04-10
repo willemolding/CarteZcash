@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
+use zebra_state::DuplicateNullifierError;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     future::Future,
@@ -59,7 +60,7 @@ pub struct TinyCashWriteService<S> {
     // A set of all nullifiers that have been seen. This prevents double spends.
     // sadly this is not fixed size but it could be replaced with a Sparse Merkle Tree
     // in the future. This would require updates to wallets though
-    // nullifier_set: HashSet<zebra_chain::orchard::Nullifier>,
+    nullifier_set: HashSet<zebra_chain::orchard::Nullifier>,
 }
 
 impl<S> TinyCashWriteService<S> {
@@ -70,6 +71,7 @@ impl<S> TinyCashWriteService<S> {
             tip_height: None,
             tip_hash: None,
             utxos_set: HashMap::new(),
+            nullifier_set: HashSet::new(),
         }
     }
 }
@@ -168,6 +170,15 @@ where
         tracing::info!("Adding new UTXOs to the set: {:?}", new_outputs);
         self.utxos_set
             .extend(new_outputs.iter().map(|(k, v)| (k.clone(), v.clone())));
+
+
+        // check this block doesn't reuse a known nullifier then add the block nullifiers to the state
+        for nullifier in block.clone().orchard_nullifiers() {
+            if self.nullifier_set.contains(nullifier) {
+                panic!("duplicate nullifier detected");
+            }
+        }
+        self.nullifier_set.extend(block.orchard_nullifiers().cloned());
 
         async move {
             if height > Height(0) {
@@ -352,6 +363,8 @@ fn mint_coinbase_txn(
     )
 }
 
+// TODO: If this can avoid adding a spend this will slow state growth
+// currently having it empty makes the block verifier freak out though
 fn empty_coinbase_txn(height: Height) -> Transaction {
     mint_coinbase_txn(Amount::zero(), &Script::new(&[0x0; 32]), height)
 }

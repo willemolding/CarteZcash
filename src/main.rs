@@ -56,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // tiny_cash::initialize_halo2();
     // tracing::info!("Initializing Halo2 verifier key complete");
 
-    let (state_service, _state_read_service, _, _) = zebra_state::init(
+    let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
         network,
         block::Height::MAX,
@@ -151,7 +151,7 @@ where
     S: Service<
             tiny_cash::write::Request,
             Response = tiny_cash::write::Response,
-            Error = tiny_cash::write::BoxError,
+            Error = BoxError,
         > + Send
         + Clone
         + 'static,
