@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
-use zebra_state::DuplicateNullifierError;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     future::Future,
@@ -10,6 +9,8 @@ use std::{
 };
 use tower::{BoxError, Service, ServiceExt};
 
+use incrementalmerkletree::frontier::Frontier;
+use zebra_chain::orchard::tree::NoteCommitmentTree;
 use zebra_chain::transparent;
 use zebra_chain::{
     amount::{Amount, NonNegative},
@@ -28,7 +29,6 @@ use zebra_chain::{
 use zebra_consensus::script;
 use zebra_consensus::transaction as tx;
 use zebra_consensus::transaction::Verifier as TxVerifier;
-use incrementalmerkletree::frontier::Frontier;
 
 use crate::extract_burn_info;
 
@@ -48,14 +48,15 @@ pub struct TinyCashWriteService<S> {
     utxos_set: HashMap<OutPoint, OrderedUtxo>,
 
     // The frontier of the commitment tree. This is the Merkle path of the last added commitment
-    // The frontier is all that is needed to update the root and produce a new frontier when new commitments are added
+    // Internally this just stores the frontier which is the Merkle path of the most recently added note
+    // This is all that is needed to update the root and produce a new frontier when new commitments are added
     // So for a fixed depth this is constant size!
-    // commitment_tree_frontier: OrchardFrontier,
+    commitment_tree_frontier: NoteCommitmentTree,
 
     // A FILO queue of orchard commitment tree roots.
     // Only a fixed window are kept so we can have constant state.
     // This means older witnesses become invalid after a period of time
-    // commitment_tree_roots: VecDeque<zebra_chain::orchard::tree::Root>,
+    historical_tree_roots: VecDeque<zebra_chain::orchard::tree::Root>,
 
     // A set of all nullifiers that have been seen. This prevents double spends.
     // sadly this is not fixed size but it could be replaced with a Sparse Merkle Tree
@@ -70,6 +71,8 @@ impl<S> TinyCashWriteService<S> {
 
             tip_height: None,
             tip_hash: None,
+            commitment_tree_frontier: NoteCommitmentTree::default(),
+            historical_tree_roots: VecDeque::new(),
             utxos_set: HashMap::new(),
             nullifier_set: HashSet::new(),
         }
@@ -171,14 +174,32 @@ where
         self.utxos_set
             .extend(new_outputs.iter().map(|(k, v)| (k.clone(), v.clone())));
 
-
         // check this block doesn't reuse a known nullifier then add the block nullifiers to the state
         for nullifier in block.clone().orchard_nullifiers() {
             if self.nullifier_set.contains(nullifier) {
                 panic!("duplicate nullifier detected");
             }
         }
-        self.nullifier_set.extend(block.orchard_nullifiers().cloned());
+        self.nullifier_set
+            .extend(block.orchard_nullifiers().cloned());
+
+        // update the commitment tree frontier and add the new root to the queue
+        for commitment in block.orchard_note_commitments() {
+            self.commitment_tree_frontier
+                .append(*commitment)
+                .expect("failed to append to tree");
+        }
+        self.historical_tree_roots
+            .push_back(self.commitment_tree_frontier.root());
+
+        // ensure the anchors/tree-roots referenced by the transaction are in the state
+        if let Some(tx) = tx_to_verify.as_ref() {
+            if let Some(data) = tx.orchard_shielded_data() {
+                if !self.historical_tree_roots.contains(&data.shared_anchor) {
+                    panic!("Tree root not found in state. Witness may be invalid or too old");
+                }
+            }
+        }
 
         async move {
             if height > Height(0) {
@@ -299,7 +320,7 @@ where
                     &orchard_shielded_data,
                     &shielded_sighash,
                 )?)
-            },
+            }
             _ => panic!("Only V5 transactions are supported"),
         };
         async_checks.check().await

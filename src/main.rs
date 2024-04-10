@@ -14,7 +14,6 @@ use futures_util::future::FutureExt;
 
 use zebra_chain::{block, parameters::Network};
 
-
 #[cfg(feature = "lightwalletd")]
 use cartezcash_lightwalletd::{
     proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
@@ -148,11 +147,8 @@ impl Service<RollAppRequest> for CarteZcashApp {
 
 async fn initialize_network<S>(tinycash: &mut S) -> Result<(), BoxError>
 where
-    S: Service<
-            tiny_cash::write::Request,
-            Response = tiny_cash::write::Response,
-            Error = BoxError,
-        > + Send
+    S: Service<tiny_cash::write::Request, Response = tiny_cash::write::Response, Error = BoxError>
+        + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,
