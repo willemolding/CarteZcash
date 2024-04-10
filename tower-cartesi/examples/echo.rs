@@ -1,9 +1,9 @@
-use futures_util::FutureExt;
 use std::env;
 use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use futures_util::FutureExt;
 
 use tower_cartesi::{listen_http, Request, Response};
 use tower_service::{BoxError, Service};
