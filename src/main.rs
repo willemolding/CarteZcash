@@ -96,9 +96,7 @@ impl CarteZcashApp {
     pub async fn new(state_service: StateService) -> Self {
         // set up the services needed to run the rollup
         let mut tinycash = Buffer::new(
-            BoxService::new(tiny_cash::write::TinyCashWriteService::new(
-                state_service,
-            )),
+            BoxService::new(tiny_cash::write::TinyCashWriteService::new(state_service)),
             10,
         );
 

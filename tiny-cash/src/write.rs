@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     future::Future,
     pin::Pin,
     sync::Arc,
@@ -9,17 +9,17 @@ use std::{
 };
 use tower::{Service, ServiceExt};
 
+use zebra_chain::transparent;
 use zebra_chain::{
     amount::{Amount, NonNegative},
     block::{Block, Header, Height},
     fmt::HexDebug,
     parameters::{Network, NetworkUpgrade},
     transaction::HashType,
-    transparent::{OrderedUtxo, OutPoint, Utxo},
+    transparent::{OrderedUtxo, OutPoint},
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
-use zebra_chain::{transaction::UnminedTxId, transparent};
 use zebra_chain::{
     transaction::{Memo, Transaction},
     transparent::Script,
