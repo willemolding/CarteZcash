@@ -24,24 +24,23 @@ ethereum-types = "0.14.1"
 futures-util = "0.3.30"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
-ethabi = "18.0.0"
-ciborium = "0.2.2"
-base64-url = "2.0.2"
-alloy-json-abi = "0.6.4"
-tonic = "0.11"
+tonic = { version = "0.11", optional = true}
 
 zebra-chain = { workspace = true }
 zebra-state = { workspace = true }
 zebra-consensus = { workspace = true }
 
 tiny-cash = { path = "tiny-cash" }
-cartezcash-lightwalletd = { path = "cartezcash-lightwalletd" }
+cartezcash-lightwalletd = { path = "cartezcash-lightwalletd", optional = true}
 tower-cartesi = { path = "tower-cartesi" }
 base58check = "0.1.0"
 zcash_address = "0.3.2"
 zcash_keys = { version = "0.2.0", features = ["orchard"] }
 zcash_primitives = "0.15.0"
 
+[features]
+default = []
+lightwalletd = ["dep:cartezcash-lightwalletd", "dep:tonic"]
 
 [workspace]
 members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]

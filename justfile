@@ -7,7 +7,7 @@ run:
     sunodo run --epoch-duration=10
 
 run-local:
-    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run
+    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run --features lightwalletd
 
 sunodo-nobackend:
     sunodo run --no-backend

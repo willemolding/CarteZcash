@@ -8,7 +8,6 @@ use std::{
 };
 use tower::{Service, ServiceExt};
 
-use zebra_chain::transparent;
 use zebra_chain::{
     amount::{Amount, NonNegative},
     block::{Block, Header, Height},
@@ -17,6 +16,7 @@ use zebra_chain::{
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
+use zebra_chain::{transaction::UnminedTxId, transparent};
 use zebra_chain::{
     transaction::{Memo, Transaction},
     transparent::Script,
@@ -31,7 +31,7 @@ pub struct TinyCashWriteService<S, V> {
     state_service: S,
     tx_verifier_service: V,
 
-    tip_height: Height,
+    tip_height: Option<Height>,
     tip_hash: Option<block::Hash>,
 }
 
@@ -41,7 +41,7 @@ impl<S, V> TinyCashWriteService<S, V> {
             state_service,
             tx_verifier_service,
 
-            tip_height: Height(0),
+            tip_height: None,
             tip_hash: None,
         }
     }
@@ -102,75 +102,27 @@ where
 
     fn call(&mut self, req: Request) -> Self::Future {
         let mut state_service = self.state_service.clone();
-        let mut transaction_verifier = self.tx_verifier_service.clone();
+        let mut tx_verifier_service = self.tx_verifier_service.clone();
 
         let tip_height = self.tip_height;
         let previous_block_hash = self.tip_hash.unwrap_or(Default::default());
 
-        let (block, height, burns) = match req {
-            Request::Genesis => {
-                (
-                    Block::zcash_deserialize(
-                        zebra_test::vectors::BLOCK_MAINNET_GENESIS_BYTES.as_slice(),
-                    )
-                    .unwrap(),
-                    Height(0),
-                    Vec::new(),
-                ) // here is one I prepared earlier :)
+        let height = tip_height.map(|h| h.next().unwrap()).unwrap_or(Height(0));
+
+        let (block, burns, tx_to_verify) = match req {
+            Request::Genesis => (genesis_block(), Vec::new(), None),
+            Request::Mint { amount, to } => {
+                let block = build_mint_block(height, previous_block_hash, amount, to);
+                let burns = Vec::new();
+                (block, burns, None)
             }
-            _ => {
-                // let (tip_height, previous_block_hash) = match state_service
-                //     .ready()
-                //     .await?
-                //     .call(zebra_state::Request::Tip)
-                //     .await?
-                // {
-                //     zebra_state::Response::Tip(Some(tip)) => tip,
-                //     _ => panic!("unexpected reponse for tip request"),
-                // };
-
-                let height = tip_height.next().unwrap();
-
-                // Every block needs a coinbase transaction which records the height
-                // For a mint event this will also be used to mint new coins
-                // otherwise it is just an empty txn
-                // also keep track of if any coins were burned by sending to the mt doom script
-                let (transactions, burns) = match req {
-                    Request::Genesis => {
-                        unreachable!("genesis block is handled prior")
-                    }
-                    Request::Mint { amount, to } => {
-                        let coinbase_tx = mint_coinbase_txn(amount, &to, height);
-                        let burns = Vec::new();
-                        (vec![Arc::new(coinbase_tx)], burns)
-                    }
-                    Request::IncludeTransaction { transaction } => {
-                        let coinbase_tx = empty_coinbase_txn(height);
-                        // check for withdrawals here
-                        let burns = transaction
-                            .orchard_actions()
-                            .filter_map(extract_burn_info)
-                            .collect();
-                        (vec![Arc::new(coinbase_tx), Arc::new(transaction)], burns)
-                    }
-                };
-
-                // build the block!
-                let block = Block {
-                    header: Header {
-                        version: 5,
-                        previous_block_hash,
-                        merkle_root: transactions.iter().collect(),
-                        commitment_bytes: HexDebug::default(),
-                        time: DateTime::<Utc>::default(),
-                        difficulty_threshold: CompactDifficulty::default(),
-                        nonce: HexDebug::default(),
-                        solution: Solution::default(),
-                    }
-                    .into(),
-                    transactions: transactions.clone(),
-                };
-                (block, height, burns)
+            Request::IncludeTransaction { transaction } => {
+                let burns = transaction
+                    .orchard_actions()
+                    .filter_map(extract_burn_info)
+                    .collect();
+                let block = build_transact_block(height, previous_block_hash, transaction.clone());
+                (block, burns, Some(transaction))
             }
         };
 
@@ -181,30 +133,27 @@ where
         let ret = block.clone();
         let block_hash = block.hash();
         let transaction_hashes: Arc<[_]> = block.transactions.iter().map(|t| t.hash()).collect();
-        let transactions = block.transactions.clone();
         let known_utxos = Arc::new(transparent::new_ordered_outputs(
             &block,
             &transaction_hashes,
         ));
 
         self.tip_hash = Some(block_hash);
-        self.tip_height = height;
-        
+        self.tip_height = Some(height);
+
         async move {
             if height > Height(0) {
-
-                tracing::info!("Verifying transactions..... may take a while. Please wait before rescanning wallet");
-                // verify the transactions
-                for transaction in &transactions {
-                    transaction_verifier
+                // verify the transaction if required
+                if let Some(tx) = tx_to_verify {
+                    tx_verifier_service
                         .ready()
                         .await
                         .expect("transaction verifier is always ready")
                         .call(tx::Request::Block {
-                            transaction: transaction.clone(),
-                            known_utxos: known_utxos.clone(),
+                            transaction: tx.into(),
+                            known_utxos: std::default::Default::default(),
                             height,
-                            time: block.header.time,
+                            time: DateTime::<Utc>::default(),
                         })
                         .await?;
                 }
@@ -222,7 +171,8 @@ where
 
                 tracing::info!(
                     "Appending block: height: {:?}, hash: {:?}",
-                    height, block_hash
+                    height,
+                    block_hash
                 );
 
                 state_service
@@ -248,6 +198,49 @@ where
             Ok(Response { block: ret, burns })
         }
         .boxed()
+    }
+}
+
+fn build_mint_block(
+    height: Height,
+    previous_block_hash: block::Hash,
+    amount: Amount<NonNegative>,
+    to: transparent::Script,
+) -> Block {
+    let coinbase_tx = mint_coinbase_txn(amount, &to, height);
+    build_block(previous_block_hash, vec![Arc::new(coinbase_tx)])
+}
+
+fn build_transact_block(
+    height: Height,
+    previous_block_hash: block::Hash,
+    transaction: Transaction,
+) -> Block {
+    let coinbase_tx = empty_coinbase_txn(height);
+    build_block(
+        previous_block_hash,
+        vec![Arc::new(coinbase_tx), Arc::new(transaction)],
+    )
+}
+
+fn genesis_block() -> Block {
+    Block::zcash_deserialize(zebra_test::vectors::BLOCK_MAINNET_GENESIS_BYTES.as_slice()).unwrap()
+}
+
+fn build_block(previous_block_hash: block::Hash, transactions: Vec<Arc<Transaction>>) -> Block {
+    Block {
+        header: Header {
+            version: 5,
+            previous_block_hash,
+            merkle_root: transactions.iter().collect(),
+            commitment_bytes: HexDebug::default(),
+            time: DateTime::<Utc>::default(),
+            difficulty_threshold: CompactDifficulty::default(),
+            nonce: HexDebug::default(),
+            solution: Solution::default(),
+        }
+        .into(),
+        transactions,
     }
 }
 
