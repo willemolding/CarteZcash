@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
 use std::{
+    collections::HashMap,
     future::Future,
     pin::Pin,
     sync::Arc,
@@ -12,7 +13,8 @@ use zebra_chain::{
     amount::{Amount, NonNegative},
     block::{Block, Header, Height},
     fmt::HexDebug,
-    parameters::Network,
+    parameters::{Network, NetworkUpgrade},
+    transaction::HashType,
     work::{difficulty::CompactDifficulty, equihash::Solution},
 };
 use zebra_chain::{block, serialization::ZcashDeserialize};
@@ -21,7 +23,9 @@ use zebra_chain::{
     transaction::{Memo, Transaction},
     transparent::Script,
 };
+use zebra_consensus::script;
 use zebra_consensus::transaction as tx;
+use zebra_consensus::transaction::Verifier as TxVerifier;
 
 use crate::extract_burn_info;
 
@@ -198,6 +202,70 @@ where
             Ok(Response { block: ret, burns })
         }
         .boxed()
+    }
+}
+
+impl<S, V> TinyCashWriteService<S, V>
+where
+    S: Service<
+            zebra_state::Request,
+            Response = zebra_state::Response,
+            Error = zebra_state::BoxError,
+        >
+        + Send
+        + Clone
+        + 'static
+        + Clone,
+    S::Future: Send + 'static,
+{
+    async fn verify_transaction(
+        tx: Arc<Transaction>,
+        height: Height,
+        all_previous_outputs: &[transparent::Output],
+    ) -> Result<(), BoxError> {
+        let async_checks = match tx.as_ref() {
+            Transaction::V1 { .. }
+            | Transaction::V2 { .. }
+            | Transaction::V3 { .. }
+            | Transaction::V4 { .. } => {
+                panic!("Unsupported transaction version");
+            }
+            Transaction::V5 {
+                sapling_shielded_data,
+                orchard_shielded_data,
+                ..
+            } => {
+                if sapling_shielded_data.is_some() {
+                    panic!("Sapling shielded data is not supported");
+                }
+                let shielded_sighash = tx.sighash(
+                    NetworkUpgrade::Nu5,
+                    HashType::ALL,
+                    all_previous_outputs,
+                    None,
+                );
+                TxVerifier::<S>::verify_transparent_inputs_and_outputs(
+                    &tx::Request::Block {
+                        transaction: tx.clone(),
+                        known_utxos: HashMap::new().into(),
+                        height,
+                        time: DateTime::<Utc>::default(),
+                    },
+                    Network::Mainnet,
+                    script::Verifier, // TODO: Maybe try and reuse this
+                    zebra_script::CachedFfiTransaction::new(
+                        tx.clone(),
+                        all_previous_outputs.to_vec(),
+                    )
+                    .into(),
+                )?
+                .and(TxVerifier::<S>::verify_orchard_shielded_data(
+                    &orchard_shielded_data,
+                    &shielded_sighash,
+                )?)
+            }
+        };
+        async_checks.check().await
     }
 }
 
