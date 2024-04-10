@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
 use futures_util::future::FutureExt;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet, VecDeque},
     future::Future,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
-use tower::{Service, ServiceExt};
+use tower::{BoxError, Service, ServiceExt};
 
 use zebra_chain::transparent;
 use zebra_chain::{
@@ -27,14 +27,17 @@ use zebra_chain::{
 use zebra_consensus::script;
 use zebra_consensus::transaction as tx;
 use zebra_consensus::transaction::Verifier as TxVerifier;
+use incrementalmerkletree::frontier::Frontier;
 
 use crate::extract_burn_info;
 
-pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type OrchardFrontier =
+    Frontier<orchard::tree::MerkleHashOrchard, { orchard::NOTE_COMMITMENT_TREE_DEPTH as u8 }>;
 
 pub struct TinyCashWriteService<S> {
     state_service: S,
 
+    // Current tip of the chain
     tip_height: Option<Height>,
     tip_hash: Option<block::Hash>,
 
@@ -42,6 +45,21 @@ pub struct TinyCashWriteService<S> {
     // This is expected to grow but very slowly since transparent outputs are only created
     // by deposits and destroyed by subsequent spends.
     utxos_set: HashMap<OutPoint, OrderedUtxo>,
+
+    // The frontier of the commitment tree. This is the Merkle path of the last added commitment
+    // The frontier is all that is needed to update the root and produce a new frontier when new commitments are added
+    // So for a fixed depth this is constant size!
+    // commitment_tree_frontier: OrchardFrontier,
+
+    // A FILO queue of orchard commitment tree roots.
+    // Only a fixed window are kept so we can have constant state.
+    // This means older witnesses become invalid after a period of time
+    // commitment_tree_roots: VecDeque<zebra_chain::orchard::tree::Root>,
+
+    // A set of all nullifiers that have been seen. This prevents double spends.
+    // sadly this is not fixed size but it could be replaced with a Sparse Merkle Tree
+    // in the future. This would require updates to wallets though
+    // nullifier_set: HashSet<zebra_chain::orchard::Nullifier>,
 }
 
 impl<S> TinyCashWriteService<S> {
@@ -237,12 +255,6 @@ where
         all_previous_outputs: &[transparent::Output],
     ) -> Result<(), BoxError> {
         let async_checks = match tx.as_ref() {
-            Transaction::V1 { .. }
-            | Transaction::V2 { .. }
-            | Transaction::V3 { .. }
-            | Transaction::V4 { .. } => {
-                panic!("Unsupported transaction version");
-            }
             Transaction::V5 {
                 sapling_shielded_data,
                 orchard_shielded_data,
@@ -276,7 +288,8 @@ where
                     &orchard_shielded_data,
                     &shielded_sighash,
                 )?)
-            }
+            },
+            _ => panic!("Only V5 transactions are supported"),
         };
         async_checks.check().await
     }
