@@ -55,7 +55,7 @@ where
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
-        tracing::info!("send_transaction called. Fowarding to InputBox contract");
+        tracing::debug!("send_transaction called. Fowarding to InputBox contract");
 
         let provider = Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
         let wallet: LocalWallet =
@@ -91,7 +91,7 @@ where
         &self,
         _request: tonic::Request<ChainSpec>,
     ) -> std::result::Result<tonic::Response<BlockId>, tonic::Status> {
-        tracing::info!("get_latest_block called");
+        tracing::debug!("get_latest_block called");
 
         let res: zebra_state::ReadResponse = self
             .state_read_service
@@ -104,13 +104,13 @@ where
             .unwrap();
 
         if let ReadResponse::Tip(Some((height, hash))) = res {
-            tracing::info!("returning tip: {:?}", res);
+            tracing::debug!("returning tip: {:?}", res);
             Ok(tonic::Response::new(BlockId {
                 hash: hash.0.to_vec(),
                 height: height.0 as u64,
             }))
         } else {
-            tracing::info!("unexpected response");
+            tracing::debug!("unexpected response");
             Err(tonic::Status::not_found(
                 "Could not find the latest block in the state store",
             ))
@@ -122,7 +122,7 @@ where
         &self,
         request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeStream>, tonic::Status> {
-        tracing::info!("get_block_range called with: {:?} ", request);
+        tracing::debug!("get_block_range called with: {:?} ", request);
         let (tx, rx) = mpsc::channel(10);
 
         // these sometimes come in reverse order...
@@ -141,7 +141,7 @@ where
         let mut state_read_service = self.state_read_service.clone();
 
         for height in range {
-            tracing::info!("fetching block at height: {}", height);
+            tracing::debug!("fetching block at height: {}", height);
             let res: zebra_state::ReadResponse = state_read_service
                 .ready()
                 .await
@@ -155,7 +155,7 @@ where
             let block = match res {
                 ReadResponse::Block(Some(block)) => block,
                 _ => {
-                    tracing::info!("unexpected response");
+                    tracing::debug!("unexpected response");
                     return Err(tonic::Status::not_found(
                         "Could not find the block in the state store",
                     ));
@@ -220,7 +220,7 @@ where
         &self,
         request: tonic::Request<TxFilter>,
     ) -> std::result::Result<tonic::Response<RawTransaction>, tonic::Status> {
-        tracing::info!("get_transaction called");
+        tracing::debug!("get_transaction called");
         let mut state_read_service = self.state_read_service.clone();
 
         let request = zebra_state::ReadRequest::Transaction(
@@ -239,7 +239,7 @@ where
                 height: transaction.height.0 as u64,
             }))
         } else {
-            tracing::info!("unexpected response");
+            tracing::debug!("unexpected response");
             Err(tonic::Status::not_found(
                 "Could not find the transaction in the state store",
             ))
@@ -251,7 +251,7 @@ where
         &self,
         request: tonic::Request<TransparentAddressBlockFilter>,
     ) -> std::result::Result<tonic::Response<Self::GetTaddressTxidsStream>, tonic::Status> {
-        tracing::info!("get_taddress_txids called with {:?}", request);
+        tracing::debug!("get_taddress_txids called with {:?}", request);
 
         let request = request.into_inner();
         let address = transparent::Address::from_str(&request.address).unwrap();
@@ -277,7 +277,7 @@ where
 
         if let ReadResponse::AddressesTransactionIds(txns) = res {
             let (tx, rx) = mpsc::channel(10);
-            tracing::info!("{:?} transactions found", txns.len());
+            tracing::debug!("{:?} transactions found", txns.len());
             for (_location, tx_id) in txns.iter() {
                 tracing::debug!("got txid: {:?}", tx_id);
 
@@ -317,7 +317,7 @@ where
         &self,
         request: tonic::Request<BlockId>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
-        tracing::info!("get_tree_state called");
+        tracing::debug!("get_tree_state called");
 
         let mut read_service = self.state_read_service.clone();
         let height: Height = Height(request.into_inner().height.try_into().unwrap());
@@ -370,7 +370,7 @@ where
             hash: hash.to_string(),
             time: block.header.time.timestamp() as u32,
         };
-        tracing::info!("returning tree state: {:?}", tree_state);
+        tracing::debug!("returning tree state: {:?}", tree_state);
         Ok(tonic::Response::new(tree_state))
     }
 
@@ -379,7 +379,7 @@ where
         &self,
         _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<LightdInfo>, tonic::Status> {
-        tracing::info!("get_lightd_info called");
+        tracing::debug!("get_lightd_info called");
 
         let block_height = 0; // TODO: fetch this from the store
 
@@ -415,7 +415,7 @@ where
         &self,
         _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolStreamStream>, tonic::Status> {
-        tracing::info!("get_mempool_stream called");
+        tracing::debug!("get_mempool_stream called");
         // let (tx, rx) = mpsc::channel(4);
         // TODO: Send the txiods into the tx end of the channel
         Err(tonic::Status::unimplemented(
@@ -432,7 +432,7 @@ where
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
-        tracing::info!("get_block called. Ignoring request");
+        tracing::debug!("get_block called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -446,7 +446,7 @@ where
         tonic::Response<crate::proto::compact_formats::CompactBlock>,
         tonic::Status,
     > {
-        tracing::info!("get_block_nullifiers called. Ignoring request");
+        tracing::debug!("get_block_nullifiers called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -461,7 +461,7 @@ where
         _request: tonic::Request<BlockRange>,
     ) -> std::result::Result<tonic::Response<Self::GetBlockRangeNullifiersStream>, tonic::Status>
     {
-        tracing::info!("get_block_range_nullifiers called. Ignoring request");
+        tracing::debug!("get_block_range_nullifiers called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -471,7 +471,7 @@ where
         &self,
         _request: tonic::Request<AddressList>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
-        tracing::info!("get_taddress_balance called. Ignoring request");
+        tracing::debug!("get_taddress_balance called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -481,7 +481,7 @@ where
         &self,
         _request: tonic::Request<tonic::Streaming<crate::proto::service::Address>>,
     ) -> std::result::Result<tonic::Response<Balance>, tonic::Status> {
-        tracing::info!("get_taddress_balance_stream called. Ignoring request");
+        tracing::debug!("get_taddress_balance_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -503,7 +503,7 @@ where
         &self,
         _request: tonic::Request<Exclude>,
     ) -> std::result::Result<tonic::Response<Self::GetMempoolTxStream>, tonic::Status> {
-        tracing::info!("get_mempool_tx called. Ignoring request");
+        tracing::debug!("get_mempool_tx called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -513,7 +513,7 @@ where
         &self,
         _request: tonic::Request<Empty>,
     ) -> std::result::Result<tonic::Response<TreeState>, tonic::Status> {
-        tracing::info!("get_latest_tree_state called. Ignoring request");
+        tracing::debug!("get_latest_tree_state called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -527,7 +527,7 @@ where
         &self,
         _request: tonic::Request<GetSubtreeRootsArg>,
     ) -> std::result::Result<tonic::Response<Self::GetSubtreeRootsStream>, tonic::Status> {
-        tracing::info!("get_subtree_roots called. Ignoring request");
+        tracing::debug!("get_subtree_roots called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -536,7 +536,7 @@ where
         &self,
         _request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<GetAddressUtxosReplyList>, tonic::Status> {
-        tracing::info!("get_address_utxos called. Ignoring request");
+        tracing::debug!("get_address_utxos called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -549,7 +549,7 @@ where
         _request: tonic::Request<GetAddressUtxosArg>,
     ) -> std::result::Result<tonic::Response<Self::GetAddressUtxosStreamStream>, tonic::Status>
     {
-        tracing::info!("get_address_utxos_stream called. Ignoring request");
+        tracing::debug!("get_address_utxos_stream called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))
@@ -560,7 +560,7 @@ where
         &self,
         _request: tonic::Request<Duration>,
     ) -> std::result::Result<tonic::Response<PingResponse>, tonic::Status> {
-        tracing::info!("ping called. Ignoring request");
+        tracing::debug!("ping called. Ignoring request");
         Err(tonic::Status::unimplemented(
             "gRPC endpoint not supported for cartezcash",
         ))

@@ -16,7 +16,6 @@ use zebra_chain::{
     block,
     block::Height,
 };
-use zebra_consensus::transaction as tx;
 
 // anything sent to this script can be spent by anyway. Useful for testing
 fn accepting() -> Script {
@@ -35,9 +34,8 @@ async fn test_genesis() {
         0,
     );
     let state_service = Buffer::new(state_service, 1);
-    let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
 
     tinycash
         .call(Request::Genesis)
@@ -57,9 +55,8 @@ async fn test_mint_txns_update_balance() {
         0,
     );
     let state_service = Buffer::new(state_service, 10);
-    let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
 
     tinycash
         .ready()
@@ -134,9 +131,8 @@ async fn test_include_transparent_transaction() {
     );
 
     let state_service = Buffer::new(state_service, 10);
-    let verifier_service = tx::Verifier::new(network, state_service.clone());
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service, verifier_service));
+    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
 
     tinycash
         .ready()

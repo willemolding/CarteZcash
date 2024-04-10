@@ -16,10 +16,13 @@ zebra-consensus = { workspace = true, default-features = false, features = [] }
 zebra-state = { workspace = true, default-features = false, features = ["proptest-impl"] }
 zebra-test = { workspace = true, default-features = false }
 zebra-chain = { workspace = true, default-features = false, features = ["proptest-impl"] }
+zebra-script = { workspace = true }
+
 lazy_static = "1.4.0"
 orchard = "0.8.0"
 zcash_note_encryption = "0.4.0"
 base58check = "0.1.0"
+incrementalmerkletree = "0.5.1"
 
 
 [dev-dependencies]

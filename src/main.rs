@@ -1,7 +1,3 @@
-use cartezcash_lightwalletd::{
-    proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
-    service_impl::CompactTxStreamerImpl,
-};
 use service::{CarteZcashService, Request};
 use zcash_keys::address::UnifiedAddress;
 use zcash_primitives::consensus::MAIN_NETWORK;
@@ -17,7 +13,12 @@ use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
 use futures_util::future::FutureExt;
 
 use zebra_chain::{block, parameters::Network};
-use zebra_consensus::transaction as tx;
+
+#[cfg(feature = "lightwalletd")]
+use cartezcash_lightwalletd::{
+    proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
+    service_impl::CompactTxStreamerImpl,
+};
 
 type StateService = Buffer<
     BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
@@ -39,7 +40,6 @@ async fn main() -> Result<(), anyhow::Error> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
-    let grpc_addr = env::var("GRPC_SERVER_URL")?;
 
     let network = Network::Mainnet;
 
@@ -62,18 +62,22 @@ async fn main() -> Result<(), anyhow::Error> {
         0,
     );
     let state_service = Buffer::new(state_service, 30);
-    let state_read_service = Buffer::new(state_read_service.boxed(), 30);
 
-    let mut cartezcash_app = CarteZcashApp::new(network, state_service).await;
+    let mut cartezcash_app = CarteZcashApp::new(state_service).await;
 
-    let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
-    let addr = grpc_addr.parse()?;
-    let grpc_server = tonic::transport::Server::builder()
-        .trace_fn(|_| tracing::info_span!("cartezcash-grpc"))
-        .add_service(svc)
-        .serve(addr);
-    tokio::spawn(grpc_server);
-    tracing::info!("wallet GRPC server listening on {}", addr);
+    #[cfg(feature = "lightwalletd")]
+    {
+        let grpc_addr = env::var("GRPC_SERVER_URL")?;
+        let state_read_service = Buffer::new(state_read_service.boxed(), 30);
+        let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
+        let addr = grpc_addr.parse()?;
+        let grpc_server = tonic::transport::Server::builder()
+            .trace_fn(|_| tracing::info_span!("cartezcash-grpc"))
+            .add_service(svc)
+            .serve(addr);
+        tokio::spawn(grpc_server);
+        tracing::info!("wallet GRPC server listening on {}", addr);
+    }
 
     listen_http(&mut cartezcash_app, &server_addr)
         .await
@@ -88,14 +92,10 @@ struct CarteZcashApp {
 }
 
 impl CarteZcashApp {
-    pub async fn new(network: Network, state_service: StateService) -> Self {
+    pub async fn new(state_service: StateService) -> Self {
         // set up the services needed to run the rollup
-        let verifier_service = tx::Verifier::new(network, state_service.clone());
         let mut tinycash = Buffer::new(
-            BoxService::new(tiny_cash::write::TinyCashWriteService::new(
-                state_service,
-                verifier_service,
-            )),
+            BoxService::new(tiny_cash::write::TinyCashWriteService::new(state_service)),
             10,
         );
 
@@ -147,11 +147,8 @@ impl Service<RollAppRequest> for CarteZcashApp {
 
 async fn initialize_network<S>(tinycash: &mut S) -> Result<(), BoxError>
 where
-    S: Service<
-            tiny_cash::write::Request,
-            Response = tiny_cash::write::Response,
-            Error = tiny_cash::write::BoxError,
-        > + Send
+    S: Service<tiny_cash::write::Request, Response = tiny_cash::write::Response, Error = BoxError>
+        + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,
