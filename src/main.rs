@@ -43,7 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let network = Network::Mainnet;
+    let _network = Network::Mainnet;
 
     println!(
         "Withdraw address is: {}",
@@ -67,8 +67,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut cartezcash_app = CarteZcashApp::new(
         #[cfg(feature = "lightwalletd")]
-        Buffer::new(state_service, 30)
-    ).await;
+        Buffer::new(state_service, 30),
+    )
+    .await;
 
     #[cfg(feature = "lightwalletd")]
     {
@@ -99,15 +100,17 @@ struct CarteZcashApp {
 }
 
 impl CarteZcashApp {
-    pub async fn new(#[cfg(feature = "lightwalletd")]
-    mut state_service: StateService) -> Self {
+    pub async fn new(#[cfg(feature = "lightwalletd")] mut state_service: StateService) -> Self {
         // set up the services needed to run the rollup
         let mut tinycash = Buffer::new(BoxService::new(tiny_cash::service::TinyCash::new()), 10);
 
-        initialize_network(&mut tinycash,#[cfg(feature = "lightwalletd")]
-        &mut state_service)
-            .await
-            .unwrap();
+        initialize_network(
+            &mut tinycash,
+            #[cfg(feature = "lightwalletd")]
+            &mut state_service,
+        )
+        .await
+        .unwrap();
 
         Self {
             cartezcash: Buffer::new(BoxService::new(CarteZcashService::new(tinycash)), 10),
@@ -176,8 +179,7 @@ impl Service<RollAppRequest> for CarteZcashApp {
 
 async fn initialize_network<S>(
     tinycash: &mut S,
-    #[cfg(feature = "lightwalletd")]
-    state_service: &mut StateService,
+    #[cfg(feature = "lightwalletd")] state_service: &mut StateService,
 ) -> Result<(), BoxError>
 where
     S: Service<
@@ -201,7 +203,7 @@ where
         response.block.hash,
         response.block.height
     );
-    
+
     #[cfg(feature = "lightwalletd")]
     state_service
         .ready()

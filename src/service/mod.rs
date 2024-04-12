@@ -41,8 +41,11 @@ impl From<tiny_cash::service::Response> for Response {
 
 impl<S> Service<Request> for CarteZcashService<S>
 where
-    S: Service<tiny_cash::service::Request, Response = tiny_cash::service::Response, Error = BoxError>
-        + Send
+    S: Service<
+            tiny_cash::service::Request,
+            Response = tiny_cash::service::Response,
+            Error = BoxError,
+        > + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,

@@ -8,21 +8,19 @@ use zcash_note_encryption::{
 };
 use zebra_state::IntoDisk;
 
-pub use zebra_state::SemanticallyVerifiedBlock;
 pub use zebra_chain::{
     amount::{self, Amount, NonNegative},
-    orchard::Action,
-    transaction::Memo,
     block,
-    parameters,
-    transaction,
+    orchard::Action,
+    parameters, serialization, transaction,
+    transaction::Memo,
     transparent,
-    serialization,
 };
+pub use zebra_state::SemanticallyVerifiedBlock;
 
+pub mod service;
 #[cfg(test)]
 mod test;
-pub mod service;
 
 // outputs send to this address cannot be recovered and are considered burned
 pub fn mt_doom_address() -> orchard::Address {

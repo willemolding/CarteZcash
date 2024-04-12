@@ -97,8 +97,7 @@ pub struct Response {
     pub burns: Vec<(Amount<NonNegative>, Memo)>,
 }
 
-impl tower::Service<Request> for TinyCash
- {
+impl tower::Service<Request> for TinyCash {
     type Response = Response;
     type Error = BoxError;
     type Future =
@@ -233,8 +232,7 @@ impl TinyCash {
         tx: Arc<Transaction>,
         height: Height,
         all_previous_outputs: &[transparent::Output],
-    ) -> Result<(), BoxError>
-    {
+    ) -> Result<(), BoxError> {
         let async_checks = match tx.as_ref() {
             Transaction::V5 {
                 sapling_shielded_data,
