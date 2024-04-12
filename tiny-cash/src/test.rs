@@ -63,10 +63,14 @@ async fn test_mint_txns_update_balance() {
 
     // write a bunch of blocks
     for _ in 0..100 {
-        exeucte_and_commit_block(Request::Mint {
-            amount: Amount::try_from(1).unwrap(),
-            to: recipient.create_script_from_address(),
-        }, &mut tinycash, &mut state_service)
+        exeucte_and_commit_block(
+            Request::Mint {
+                amount: Amount::try_from(1).unwrap(),
+                to: recipient.create_script_from_address(),
+            },
+            &mut tinycash,
+            &mut state_service,
+        )
         .await
         .unwrap();
     }

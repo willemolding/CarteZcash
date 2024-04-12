@@ -12,8 +12,6 @@ use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
-use tiny_cash::parameters::Network;
-
 #[cfg(feature = "lightwalletd")]
 use cartezcash_lightwalletd::{
     proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
@@ -24,11 +22,6 @@ use cartezcash_lightwalletd::{
 type StateService = Buffer<
     BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
     zebra_state::Request,
->;
-#[cfg(feature = "lightwalletd")]
-type StateReadService = Buffer<
-    BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, zebra_state::BoxError>,
-    zebra_state::ReadRequest,
 >;
 
 mod service;
@@ -43,8 +36,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let _network = Network::Mainnet;
-
     println!(
         "Withdraw address is: {}",
         UnifiedAddress::from_receivers(Some(tiny_cash::mt_doom_address()), None)
@@ -53,14 +44,17 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     // TODO: Enable this when not debugging
-    // tracing::info!("Initializing Halo2 verifier key");
-    // tiny_cash::initialize_halo2();
-    // tracing::info!("Initializing Halo2 verifier key complete");
+    #[cfg(feature = "preinitialize-halo2")]
+    {
+        tracing::info!("Initializing Halo2 verifier key");
+        tiny_cash::initialize_halo2();
+        tracing::info!("Initializing Halo2 verifier key complete");
+    }
 
     #[cfg(feature = "lightwalletd")]
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
-        network,
+        tiny_cash::parameters::Network::Mainnet,
         tiny_cash::block::Height::MAX,
         0,
     );

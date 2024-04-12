@@ -38,6 +38,7 @@ tower-cartesi = { path = "tower-cartesi" }
 [features]
 default = []
 lightwalletd = ["dep:cartezcash-lightwalletd", "dep:tonic", "dep:zebra-state"]
+preinitialize-halo2 = []
 
 [workspace]
 members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
