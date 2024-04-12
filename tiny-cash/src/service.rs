@@ -31,7 +31,7 @@ use zebra_consensus::transaction::Verifier as TxVerifier;
 
 use crate::extract_burn_info;
 
-type StateService = Buffer<
+pub type StateService = Buffer<
     BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
     zebra_state::Request,
 >;
