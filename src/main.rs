@@ -12,21 +12,16 @@ use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
-use zebra_chain::{block, parameters::Network};
-
 #[cfg(feature = "lightwalletd")]
 use cartezcash_lightwalletd::{
     proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
     service_impl::CompactTxStreamerImpl,
 };
 
+#[cfg(feature = "lightwalletd")]
 type StateService = Buffer<
     BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
     zebra_state::Request,
->;
-type StateReadService = Buffer<
-    BoxService<zebra_state::ReadRequest, zebra_state::ReadResponse, zebra_state::BoxError>,
-    zebra_state::ReadRequest,
 >;
 
 mod service;
@@ -41,8 +36,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let server_addr = env::var("ROLLUP_HTTP_SERVER_URL")?;
 
-    let network = Network::Mainnet;
-
     println!(
         "Withdraw address is: {}",
         UnifiedAddress::from_receivers(Some(tiny_cash::mt_doom_address()), None)
@@ -51,19 +44,26 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     // TODO: Enable this when not debugging
-    // tracing::info!("Initializing Halo2 verifier key");
-    // tiny_cash::initialize_halo2();
-    // tracing::info!("Initializing Halo2 verifier key complete");
+    #[cfg(feature = "preinitialize-halo2")]
+    {
+        tracing::info!("Initializing Halo2 verifier key");
+        tiny_cash::initialize_halo2();
+        tracing::info!("Initializing Halo2 verifier key complete");
+    }
 
+    #[cfg(feature = "lightwalletd")]
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
-        network,
-        block::Height::MAX,
+        tiny_cash::parameters::Network::Mainnet,
+        tiny_cash::block::Height::MAX,
         0,
     );
-    let state_service = Buffer::new(state_service, 30);
 
-    let mut cartezcash_app = CarteZcashApp::new(state_service).await;
+    let mut cartezcash_app = CarteZcashApp::new(
+        #[cfg(feature = "lightwalletd")]
+        Buffer::new(state_service, 30),
+    )
+    .await;
 
     #[cfg(feature = "lightwalletd")]
     {
@@ -89,20 +89,27 @@ async fn main() -> Result<(), anyhow::Error> {
 struct CarteZcashApp {
     cartezcash:
         Buffer<BoxService<Request, service::Response, Box<dyn Error + Sync + Send>>, Request>,
+    #[cfg(feature = "lightwalletd")]
+    state_service: StateService,
 }
 
 impl CarteZcashApp {
-    pub async fn new(state_service: StateService) -> Self {
+    pub async fn new(#[cfg(feature = "lightwalletd")] mut state_service: StateService) -> Self {
         // set up the services needed to run the rollup
-        let mut tinycash = Buffer::new(
-            BoxService::new(tiny_cash::write::TinyCashWriteService::new(state_service)),
-            10,
-        );
+        let mut tinycash = Buffer::new(BoxService::new(tiny_cash::service::TinyCash::new()), 10);
 
-        initialize_network(&mut tinycash).await.unwrap();
+        initialize_network(
+            &mut tinycash,
+            #[cfg(feature = "lightwalletd")]
+            &mut state_service,
+        )
+        .await
+        .unwrap();
 
         Self {
             cartezcash: Buffer::new(BoxService::new(CarteZcashService::new(tinycash)), 10),
+            #[cfg(feature = "lightwalletd")]
+            state_service: state_service,
         }
     }
 }
@@ -121,6 +128,10 @@ impl Service<RollAppRequest> for CarteZcashApp {
             RollAppRequest::AdvanceState { metadata, payload } => {
                 let czk_request = Request::try_from((metadata, payload)).unwrap();
                 let mut cartezcash_service = self.cartezcash.clone();
+
+                #[cfg(feature = "lightwalletd")]
+                let mut state_service = self.state_service.clone();
+
                 async move {
                     let response = cartezcash_service
                         .ready()
@@ -128,6 +139,21 @@ impl Service<RollAppRequest> for CarteZcashApp {
                         .call(czk_request.clone())
                         .await?;
 
+                    #[cfg(feature = "lightwalletd")]
+                    {
+                        tracing::info!(
+                            "committing block {} at height {:?}",
+                            response.block.hash,
+                            response.block.height
+                        );
+                        state_service
+                            .ready()
+                            .await?
+                            .call(zebra_state::Request::CommitSemanticallyVerifiedBlock(
+                                response.block,
+                            ))
+                            .await?;
+                    }
                     let resp = tower_cartesi::Response::empty_accept();
                     for withdrawal in response.withdrawals {
                         // TODO: Build vouchers and add to response
@@ -145,19 +171,41 @@ impl Service<RollAppRequest> for CarteZcashApp {
     }
 }
 
-async fn initialize_network<S>(tinycash: &mut S) -> Result<(), BoxError>
+async fn initialize_network<S>(
+    tinycash: &mut S,
+    #[cfg(feature = "lightwalletd")] state_service: &mut StateService,
+) -> Result<(), BoxError>
 where
-    S: Service<tiny_cash::write::Request, Response = tiny_cash::write::Response, Error = BoxError>
-        + Send
+    S: Service<
+            tiny_cash::service::Request,
+            Response = tiny_cash::service::Response,
+            Error = BoxError,
+        > + Send
         + Clone
         + 'static,
     S::Future: Send + 'static,
 {
     // Mine the genesis block
-    tinycash
+    let response = tinycash
         .ready()
         .await?
-        .call(tiny_cash::write::Request::Genesis)
+        .call(tiny_cash::service::Request::Genesis)
         .await?;
+
+    tracing::info!(
+        "committing GENESIS block {} at height {:?}",
+        response.block.hash,
+        response.block.height
+    );
+
+    #[cfg(feature = "lightwalletd")]
+    state_service
+        .ready()
+        .await?
+        .call(zebra_state::Request::CommitCheckpointVerifiedBlock(
+            zebra_state::CheckpointVerifiedBlock::from(response.block.block),
+        ))
+        .await?;
+
     Ok(())
 }

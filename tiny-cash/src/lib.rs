@@ -6,16 +6,21 @@ use orchard::{
 use zcash_note_encryption::{
     try_note_decryption, EphemeralKeyBytes, ShieldedOutput, ENC_CIPHERTEXT_SIZE,
 };
-use zebra_chain::{
-    amount::{Amount, NonNegative},
-    orchard::Action,
-    transaction::Memo,
-};
 use zebra_state::IntoDisk;
 
+pub use zebra_chain::{
+    amount::{self, Amount, NonNegative},
+    block,
+    orchard::Action,
+    parameters, serialization, transaction,
+    transaction::Memo,
+    transparent,
+};
+pub use zebra_state::SemanticallyVerifiedBlock;
+
+pub mod service;
 #[cfg(test)]
 mod test;
-pub mod write;
 
 // outputs send to this address cannot be recovered and are considered burned
 pub fn mt_doom_address() -> orchard::Address {

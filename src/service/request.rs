@@ -1,9 +1,9 @@
 use ethereum_types::U256;
 
-use zebra_chain::amount::{Amount, NonNegative};
-use zebra_chain::serialization::ZcashDeserialize;
-use zebra_chain::transaction::Transaction;
-use zebra_chain::transparent::Address;
+use tiny_cash::amount::{Amount, NonNegative};
+use tiny_cash::serialization::ZcashDeserialize;
+use tiny_cash::transaction::Transaction;
+use tiny_cash::transparent::Address;
 
 /// Requests that can be received from the L1
 /// will be either EtherTransfer {"request_type":"advance_state","data":{"metadata":{"msg_sender":"0xffdbe43d4c855bf7e0f105c400a50857f53ab044","epoch_index":0,"input_index":0,"block_number":11,"timestamp":1710913093},"payload":"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000001314fb37062980000"}}
@@ -44,7 +44,7 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                     .unwrap(); // 1 ZEC is 100_000_000 units while 1 ETH is 10^18. So we divide by 10^10 so that 1 ETH is 1 ZEC
 
                 let dest_t_address = Address::from_pub_key_hash(
-                    zebra_chain::parameters::Network::Mainnet,
+                    tiny_cash::parameters::Network::Mainnet,
                     payload[52..].try_into().unwrap(),
                 );
                 let amount = Amount::try_from(value.as_u64())?; // FIX: This is going to panic if too much eth is sent
@@ -67,7 +67,7 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                  */
 
                 let txn =
-                    zebra_chain::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
+                    tiny_cash::transaction::Transaction::zcash_deserialize(payload.as_slice())?;
 
                 tracing::info!("Received transaction request {}", txn.hash());
 

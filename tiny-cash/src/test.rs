@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use crate::write::*;
+use crate::service::*;
 use tower::ServiceExt;
 use tower::{buffer::Buffer, util::BoxService};
 use zebra_chain::parameters::{Network, NetworkUpgrade};
 use zebra_chain::transaction::LockTime;
 use zebra_chain::transparent::Script;
 
-use tower::Service;
+use tower::{BoxError, Service};
 
 use zebra_chain::transaction::Transaction;
 use zebra_chain::transparent;
@@ -33,14 +33,12 @@ async fn test_genesis() {
         block::Height::MAX,
         0,
     );
-    let state_service = Buffer::new(state_service, 1);
+    let mut state_service = Buffer::new(state_service, 10);
+    let mut tinycash = Buffer::new(BoxService::new(TinyCash::new()), 10);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
-
-    tinycash
-        .call(Request::Genesis)
+    exeucte_and_commit_block(Request::Genesis, &mut tinycash, &mut state_service)
         .await
-        .expect("unexpected error response");
+        .expect("Error committing genesis block");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -54,15 +52,10 @@ async fn test_mint_txns_update_balance() {
         block::Height::MAX,
         0,
     );
-    let state_service = Buffer::new(state_service, 10);
+    let mut state_service = Buffer::new(state_service, 10);
+    let mut tinycash = Buffer::new(BoxService::new(TinyCash::new()), 10);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
-
-    tinycash
-        .ready()
-        .await
-        .unwrap()
-        .call(Request::Genesis)
+    exeucte_and_commit_block(Request::Genesis, &mut tinycash, &mut state_service)
         .await
         .unwrap();
 
@@ -70,16 +63,16 @@ async fn test_mint_txns_update_balance() {
 
     // write a bunch of blocks
     for _ in 0..100 {
-        tinycash
-            .ready()
-            .await
-            .unwrap()
-            .call(Request::Mint {
+        exeucte_and_commit_block(
+            Request::Mint {
                 amount: Amount::try_from(1).unwrap(),
                 to: recipient.create_script_from_address(),
-            })
-            .await
-            .expect("unexpected error response");
+            },
+            &mut tinycash,
+            &mut state_service,
+        )
+        .await
+        .unwrap();
     }
 
     let mut addresses = HashSet::new();
@@ -130,28 +123,23 @@ async fn test_include_transparent_transaction() {
         0,
     );
 
-    let state_service = Buffer::new(state_service, 10);
+    let mut state_service = Buffer::new(state_service, 10);
+    let mut tinycash = Buffer::new(BoxService::new(TinyCash::new()), 10);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
-
-    tinycash
-        .ready()
-        .await
-        .unwrap()
-        .call(Request::Genesis)
+    exeucte_and_commit_block(Request::Genesis, &mut tinycash, &mut state_service)
         .await
         .unwrap();
 
-    let Response { block: b1, .. } = tinycash
-        .ready()
-        .await
-        .unwrap()
-        .call(Request::Mint {
+    let b1 = exeucte_and_commit_block(
+        Request::Mint {
             amount: Amount::try_from(100).unwrap(),
             to: accepting(),
-        })
-        .await
-        .expect("unexpected error response");
+        },
+        &mut tinycash,
+        &mut state_service,
+    )
+    .await
+    .unwrap();
 
     println!("b1: {:?}", b1);
 
@@ -170,6 +158,45 @@ async fn test_include_transparent_transaction() {
         .call(Request::IncludeTransaction { transaction: tx })
         .await
         .unwrap();
+}
+
+// combines tiny-cash with a zebra state service.
+// Adds the block to the state service after it has been verified and added to tiny-cash
+async fn exeucte_and_commit_block<TC, S>(
+    request: Request,
+    tinycash: &mut TC,
+    state_service: &mut S,
+) -> Result<std::sync::Arc<block::Block>, tower::BoxError>
+where
+    TC: Service<Request, Response = Response, Error = BoxError> + Send + Clone + 'static,
+    TC::Future: Send + 'static,
+    S: Service<zebra_state::Request, Response = zebra_state::Response, Error = BoxError>
+        + Send
+        + Clone
+        + 'static,
+    S::Future: Send + 'static,
+{
+    let response = tinycash.ready().await?.call(request).await?;
+
+    if response.block.height == Height(0) {
+        // genesis block needs to be committed as a checkpoint
+        state_service
+            .ready()
+            .await?
+            .call(zebra_state::Request::CommitCheckpointVerifiedBlock(
+                zebra_state::CheckpointVerifiedBlock::from(response.block.clone().block),
+            ))
+            .await?;
+    } else {
+        state_service
+            .ready()
+            .await?
+            .call(zebra_state::Request::CommitSemanticallyVerifiedBlock(
+                response.block.clone(),
+            ))
+            .await?;
+    }
+    Ok(response.block.block)
 }
 
 /// Given a `previous_outpoint` build a new transaction that should pass
