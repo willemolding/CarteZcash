@@ -7,9 +7,8 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
-use tower::{BoxError, Service, ServiceExt};
+use tower::{buffer::Buffer, util::BoxService, BoxError};
 
-use incrementalmerkletree::frontier::Frontier;
 use zebra_chain::orchard::tree::NoteCommitmentTree;
 use zebra_chain::transparent;
 use zebra_chain::{
@@ -32,12 +31,12 @@ use zebra_consensus::transaction::Verifier as TxVerifier;
 
 use crate::extract_burn_info;
 
-pub type OrchardFrontier =
-    Frontier<orchard::tree::MerkleHashOrchard, { orchard::NOTE_COMMITMENT_TREE_DEPTH as u8 }>;
+type StateService = Buffer<
+    BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>,
+    zebra_state::Request,
+>;
 
-pub struct TinyCashWriteService<S> {
-    state_service: S,
-
+pub struct TinyCash {
     // Current tip of the chain
     tip_height: Option<Height>,
     tip_hash: Option<block::Hash>,
@@ -64,11 +63,9 @@ pub struct TinyCashWriteService<S> {
     nullifier_set: HashSet<zebra_chain::orchard::Nullifier>,
 }
 
-impl<S> TinyCashWriteService<S> {
-    pub fn new(state_service: S) -> Self {
+impl TinyCash {
+    pub fn new() -> Self {
         Self {
-            state_service,
-
             tip_height: None,
             tip_hash: None,
             commitment_tree_frontier: NoteCommitmentTree::default(),
@@ -95,36 +92,23 @@ pub enum Request {
 /// The response type for the TinyCash service
 pub struct Response {
     ///The block that was added by this state transition
-    pub block: block::Block,
+    pub block: zebra_state::SemanticallyVerifiedBlock,
     /// The amount of coins that were burned by the transaction (if any) by transferring to the Mt Doom address (0x000...000)
     pub burns: Vec<(Amount<NonNegative>, Memo)>,
 }
 
-impl<S> tower::Service<Request> for TinyCashWriteService<S>
-where
-    S: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        >
-        + Send
-        + Clone
-        + 'static
-        + Clone,
-    S::Future: Send + 'static,
-{
+impl tower::Service<Request> for TinyCash
+ {
     type Response = Response;
     type Error = BoxError;
     type Future =
         Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send + 'static>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.state_service.poll_ready(cx)
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let mut state_service = self.state_service.clone();
-
         let tip_height = self.tip_height;
         let previous_block_hash = self.tip_hash.unwrap_or(Default::default());
 
@@ -151,7 +135,6 @@ where
         // this logic mostly taken from zebra-consensus block verifier
         // https://github.com/ZcashFoundation/zebra/blob/main/zebra-consensus/src/block.rs
 
-        let ret = block.clone();
         let block_hash = block.hash();
 
         self.tip_hash = Some(block_hash);
@@ -202,56 +185,33 @@ where
         }
 
         async move {
-            if height > Height(0) {
-                // verify the transaction if required
-                if let Some(tx) = tx_to_verify {
-                    tracing::info!("Verifying transaction");
-                    Self::verify_transaction(tx.into(), height, outputs_spent.as_slice()).await?;
-                    tracing::info!("Transaction passed!");
-                }
-
-                // contextually verify and commit the block
-                let prepared_block = zebra_state::SemanticallyVerifiedBlock {
-                    block: block.into(),
-                    hash: block_hash,
-                    height,
-                    new_outputs,
-                    transaction_hashes,
-                };
-
-                tracing::info!(
-                    "Appending block: height: {:?}, hash: {:?}",
-                    height,
-                    block_hash
-                );
-
-                state_service
-                    .ready()
-                    .await?
-                    .call(zebra_state::Request::CommitSemanticallyVerifiedBlock(
-                        prepared_block,
-                    ))
-                    .await?;
-            } else {
-                // commit the genesis block as a checkpoint
-                let prepared_block = zebra_state::CheckpointVerifiedBlock::from(Arc::new(block));
-                state_service
-                    .ready()
-                    .await?
-                    .call(zebra_state::Request::CommitCheckpointVerifiedBlock(
-                        prepared_block,
-                    ))
-                    .await?;
+            // verify the transaction if required
+            if let Some(tx) = tx_to_verify {
+                tracing::info!("Verifying transaction");
+                Self::verify_transaction(tx.into(), height, outputs_spent.as_slice()).await?;
+                tracing::info!("Transaction passed!");
             }
 
+            // contextually verify and commit the block
+            let prepared_block = zebra_state::SemanticallyVerifiedBlock {
+                block: block.into(),
+                hash: block_hash,
+                height,
+                new_outputs,
+                transaction_hashes,
+            };
+
             // return the info about the new block
-            Ok(Response { block: ret, burns })
+            Ok(Response {
+                block: prepared_block,
+                burns,
+            })
         }
         .boxed()
     }
 }
 
-impl<S> TinyCashWriteService<S> {
+impl TinyCash {
     pub fn outputs_spent_by_transaction(&self, tx: Arc<Transaction>) -> Vec<transparent::Output> {
         tx.inputs()
             .iter()
@@ -268,24 +228,13 @@ impl<S> TinyCashWriteService<S> {
     }
 }
 
-impl<S> TinyCashWriteService<S>
-where
-    S: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        >
-        + Send
-        + Clone
-        + 'static
-        + Clone,
-    S::Future: Send + 'static,
-{
+impl TinyCash {
     async fn verify_transaction(
         tx: Arc<Transaction>,
         height: Height,
         all_previous_outputs: &[transparent::Output],
-    ) -> Result<(), BoxError> {
+    ) -> Result<(), BoxError>
+    {
         let async_checks = match tx.as_ref() {
             Transaction::V5 {
                 sapling_shielded_data,
@@ -301,7 +250,7 @@ where
                     all_previous_outputs,
                     None,
                 );
-                TxVerifier::<S>::verify_transparent_inputs_and_outputs(
+                TxVerifier::<StateService>::verify_transparent_inputs_and_outputs(
                     &tx::Request::Block {
                         transaction: tx.clone(),
                         known_utxos: HashMap::new().into(),
@@ -316,7 +265,7 @@ where
                     )
                     .into(),
                 )?
-                .and(TxVerifier::<S>::verify_orchard_shielded_data(
+                .and(TxVerifier::<StateService>::verify_orchard_shielded_data(
                     &orchard_shielded_data,
                     &shielded_sighash,
                 )?)

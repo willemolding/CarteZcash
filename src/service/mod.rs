@@ -12,6 +12,7 @@ pub struct CarteZcashService<S> {
 
 pub struct Response {
     pub withdrawals: Vec<(ethereum_types::Address, ethereum_types::U256)>,
+    pub block: tiny_cash::SemanticallyVerifiedBlock,
 }
 
 impl<S> CarteZcashService<S> {
@@ -20,8 +21,8 @@ impl<S> CarteZcashService<S> {
     }
 }
 
-impl From<tiny_cash::write::Response> for Response {
-    fn from(res: tiny_cash::write::Response) -> Self {
+impl From<tiny_cash::service::Response> for Response {
+    fn from(res: tiny_cash::service::Response) -> Self {
         Self {
             withdrawals: res
                 .burns
@@ -33,13 +34,14 @@ impl From<tiny_cash::write::Response> for Response {
                     )
                 })
                 .collect(),
+            block: res.block,
         }
     }
 }
 
 impl<S> Service<Request> for CarteZcashService<S>
 where
-    S: Service<tiny_cash::write::Request, Response = tiny_cash::write::Response, Error = BoxError>
+    S: Service<tiny_cash::service::Request, Response = tiny_cash::service::Response, Error = BoxError>
         + Send
         + Clone
         + 'static,
@@ -66,7 +68,7 @@ where
                     tiny_cash
                         .ready()
                         .await?
-                        .call(tiny_cash::write::Request::Mint {
+                        .call(tiny_cash::service::Request::Mint {
                             amount,
                             to: to.create_script_from_address(),
                         })
@@ -81,7 +83,7 @@ where
                     tiny_cash
                         .ready()
                         .await?
-                        .call(tiny_cash::write::Request::IncludeTransaction { transaction: txn })
+                        .call(tiny_cash::service::Request::IncludeTransaction { transaction: txn })
                         .await
                         .map(|res| {
                             tracing::info!("detected burns: {:?}", res.burns);

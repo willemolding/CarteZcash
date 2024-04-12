@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::write::*;
+use crate::service::*;
 use tower::ServiceExt;
 use tower::{buffer::Buffer, util::BoxService};
 use zebra_chain::parameters::{Network, NetworkUpgrade};
@@ -35,7 +35,7 @@ async fn test_genesis() {
     );
     let state_service = Buffer::new(state_service, 1);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
+    let mut tinycash = BoxService::new(TinyCash::new());
 
     tinycash
         .call(Request::Genesis)
@@ -56,7 +56,7 @@ async fn test_mint_txns_update_balance() {
     );
     let state_service = Buffer::new(state_service, 10);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
+    let mut tinycash = BoxService::new(TinyCash::new());
 
     tinycash
         .ready()
@@ -132,7 +132,7 @@ async fn test_include_transparent_transaction() {
 
     let state_service = Buffer::new(state_service, 10);
 
-    let mut tinycash = BoxService::new(TinyCashWriteService::new(state_service));
+    let mut tinycash = BoxService::new(TinyCash::new());
 
     tinycash
         .ready()
@@ -157,7 +157,7 @@ async fn test_include_transparent_transaction() {
 
     let tx = build_transaction_spending(
         transparent::OutPoint {
-            hash: b1.transactions[0].hash(),
+            hash: b1.block.transactions[0].hash(),
             index: 0,
         },
         100.try_into().unwrap(),

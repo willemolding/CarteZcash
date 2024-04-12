@@ -614,7 +614,6 @@ name = "cartezcash"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "base58check",
  "cartezcash-lightwalletd",
  "chrono",
  "ethereum-types",
@@ -633,8 +632,6 @@ dependencies = [
  "zcash_address",
  "zcash_keys",
  "zcash_primitives 0.15.0",
- "zebra-chain",
- "zebra-consensus",
  "zebra-state",
 ]
 
@@ -4263,7 +4260,6 @@ dependencies = [
  "chrono",
  "futures-util",
  "hex",
- "incrementalmerkletree",
  "lazy_static",
  "orchard 0.8.0",
  "tokio",
