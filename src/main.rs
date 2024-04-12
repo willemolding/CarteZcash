@@ -6,14 +6,13 @@ use std::env;
 use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 use tower::{buffer::Buffer, util::BoxService, BoxError, Service, ServiceExt};
 use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
-use tiny_cash::{block, parameters::Network};
+use tiny_cash::parameters::Network;
 
 #[cfg(feature = "lightwalletd")]
 use cartezcash_lightwalletd::{
@@ -62,7 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let (state_service, state_read_service, _, _) = zebra_state::init(
         zebra_state::Config::ephemeral(),
         network,
-        block::Height::MAX,
+        tiny_cash::block::Height::MAX,
         0,
     );
 
