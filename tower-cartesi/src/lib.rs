@@ -34,7 +34,7 @@ where
         // set the finish message and get the new request
         let finish_http_request = response
             .finish_message()
-            .build_http_request(host_uri.try_into()?);
+            .build_http_request(host_uri);
         let resp = client.request(finish_http_request).await?;
         if resp.status() == hyper::StatusCode::ACCEPTED {
             tracing::info!("No pending rollup request, trying again");
@@ -51,7 +51,7 @@ where
         for output in response.outputs.iter() {
             tracing::info!("Sending output {:?}", output);
             let resp = client
-                .request(output.build_http_request(host_uri.try_into()?))
+                .request(output.build_http_request(host_uri))
                 .await?;
             tracing::info!("Output response: {:?}", resp.status());
         }

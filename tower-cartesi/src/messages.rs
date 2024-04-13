@@ -1,4 +1,3 @@
-use hyper::Uri;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -26,7 +25,7 @@ impl Finish {
         }
     }
 
-    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
+    pub fn build_http_request(&self, host_uri: &str) -> hyper::Request<hyper::Body> {
         let finish_uri = format!("{}/finish", host_uri);
 
         hyper::Request::builder()
@@ -91,7 +90,7 @@ where
 }
 
 impl Output {
-    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
+    pub fn build_http_request(&self, host_uri: &str) -> hyper::Request<hyper::Body> {
         let uri = match self {
             Self::Notice { .. } => format!("{}/notice", host_uri),
             Self::Report { .. } => format!("{}/report", host_uri),

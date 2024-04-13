@@ -80,8 +80,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     listen_http(&mut cartezcash_app, &server_addr)
-        .await
-        .expect("Failed to start the rollup server");
+        .await?;
 
     Ok(())
 }
