@@ -1,4 +1,3 @@
-use num_bigint::BigInt;
 use thiserror::Error;
 use tower_service::Service;
 
@@ -70,7 +69,7 @@ use graphql_client::GraphQLQuery;
 #[graphql(
     schema_path = "graphql/schema.graphql",
     query_path = "graphql/inputs_query.graphql",
-    response_derives = "Debug",
+    response_derives = "Debug"
 )]
 pub struct InputsQuery;
 
@@ -105,17 +104,12 @@ where
         let response_body: graphql_client::Response<inputs_query::ResponseData> =
             serde_json::from_reader(&hyper::body::to_bytes(resp.into_body()).await?[..])?;
 
-        for edge in response_body
-            .data
-            .unwrap()
-            .inputs
-            .edges
-            .into_iter()
-            {
-                cursor = Some(edge.cursor);
-                service.call(edge.node.try_into().unwrap()).await.map_err(Error::ServiceError)?;
-            }
+        for edge in response_body.data.unwrap().inputs.edges.into_iter() {
+            cursor = Some(edge.cursor);
+            service
+                .call(edge.node.try_into().unwrap())
+                .await
+                .map_err(Error::ServiceError)?;
+        }
     }
-
-    Ok(())
 }
