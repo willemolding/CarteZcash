@@ -79,8 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
         tracing::info!("wallet GRPC server listening on {}", addr);
     }
 
-    listen_http(&mut cartezcash_app, &server_addr)
-        .await?;
+    listen_http(&mut cartezcash_app, &server_addr).await?;
 
     Ok(())
 }
