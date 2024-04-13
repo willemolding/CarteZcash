@@ -8,7 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tower::{buffer::Buffer, util::BoxService, BoxError, Service, ServiceExt};
-use tower_cartesi::{listen_http, Request as RollAppRequest, Response};
+use tower_cartesi::{Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
@@ -79,7 +79,13 @@ async fn main() -> Result<(), anyhow::Error> {
         tracing::info!("wallet GRPC server listening on {}", addr);
     }
 
-    listen_http(&mut cartezcash_app, &server_addr)
+    #[cfg(feature = "listen-http")]
+    tower_cartesi::listen_http(&mut cartezcash_app, &server_addr)
+        .await
+        .expect("Failed to start the rollup server");
+
+    #[cfg(feature = "listen-graphql")]
+    tower_cartesi::listen_graphql(&mut cartezcash_app, &server_addr, 10)
         .await
         .expect("Failed to start the rollup server");
 
