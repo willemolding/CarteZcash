@@ -1,0 +1,16 @@
+
+query InputsQuery($first: Int!, $after: String) {
+  inputs(first: $first, after: $after) {
+    edges {
+        cursor
+        node {
+          index,
+          status,
+          msgSender,
+          timestamp,
+          payload,
+          blockNumber,
+        }
+      }
+  }
+}
