@@ -6,6 +6,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     PATH=/usr/local/cargo/bin:$PATH \
     RUST_VERSION=1.76.0
 
+ARG DEBIAN_FRONTEND=noninteractive
 RUN <<EOF
 set -e
 apt update
@@ -16,7 +17,7 @@ apt install -y --no-install-recommends \
     wget=1.21.2-2ubuntu1 \
     libclang-dev
 EOF
-# libclang-dev is required to build and link the rust-rocksdb crate for riscv64
+# libclang needed to build rocksdb. Can remove once this is no longer needed.
 
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
@@ -54,20 +55,29 @@ FROM base as builder
 COPY --from=planner /opt/cartesi/cartezcash/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json  --target riscv64gc-unknown-linux-gnu
 COPY . .
-RUN cargo build --release  --target riscv64gc-unknown-linux-gnu
+RUN cargo build --release --target riscv64gc-unknown-linux-gnu
 
 ### final image is the dapp itself
 
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
-LABEL io.sunodo.sdk_version=0.3.0
-LABEL io.cartesi.rollups.ram_size=128Mi
-
-ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
-
+ARG MACHINE_EMULATOR_TOOLS_VERSION=0.14.1
 ADD https://github.com/cartesi/machine-emulator-tools/releases/download/v${MACHINE_EMULATOR_TOOLS_VERSION}/machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb /
 RUN dpkg -i /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb \
     && rm /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb
+
+LABEL io.sunodo.sdk_version=0.4.0
+LABEL io.cartesi.rollups.ram_size=256Mi
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN <<EOF
+set -e
+apt-get update
+apt-get install -y --no-install-recommends \
+    busybox-static=1:1.30.1-7ubuntu3
+rm -rf /var/lib/apt/lists/* /var/log/* /var/cache/*
+useradd --create-home --user-group dapp
+EOF
 
 ENV PATH="/opt/cartesi/bin:/opt/cartesi/cartezcash:${PATH}"
 

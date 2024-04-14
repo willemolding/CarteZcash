@@ -32,9 +32,7 @@ where
     let mut response = Response::empty_accept();
     loop {
         // set the finish message and get the new request
-        let finish_http_request = response
-            .finish_message()
-            .build_http_request(host_uri.try_into()?);
+        let finish_http_request = response.finish_message().build_http_request(host_uri);
         let resp = client.request(finish_http_request).await?;
         if resp.status() == hyper::StatusCode::ACCEPTED {
             tracing::info!("No pending rollup request, trying again");
@@ -50,9 +48,7 @@ where
         // handle the additional calls as required by the dApp outputs
         for output in response.outputs.iter() {
             tracing::info!("Sending output {:?}", output);
-            let resp = client
-                .request(output.build_http_request(host_uri.try_into()?))
-                .await?;
+            let resp = client.request(output.build_http_request(host_uri)).await?;
             tracing::info!("Output response: {:?}", resp.status());
         }
     }
