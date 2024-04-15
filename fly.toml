@@ -1,7 +1,7 @@
 app = "cartezcash"
 
 [build]
-image = "registry.fly.io/cartezcash"
+image = "registry.fly.io/cartezcash:latest"
 
 [http_service]
 internal_port = 10000
