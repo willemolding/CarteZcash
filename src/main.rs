@@ -85,7 +85,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .expect("Failed to start the rollup server");
 
     #[cfg(feature = "listen-graphql")]
-    tower_cartesi::listen_graphql(&mut cartezcash_app, &server_addr, 10)
+    tower_cartesi::listen_graphql(&mut cartezcash_app, &server_addr, 10, std::time::Duration::from_secs(5))
         .await
         .expect("Failed to start the rollup server");
 

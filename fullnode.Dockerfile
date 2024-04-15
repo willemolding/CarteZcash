@@ -14,8 +14,11 @@ apt install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     ca-certificates=20230311ubuntu0.22.04.1 \
     wget=1.21.2-2ubuntu1 \
-    libclang-dev
+    libclang-dev \
+    libssl-dev pkg-config
 EOF
+# libclang needed to build rocksdb. Can remove once this is no longer needed.
+# libssl-dev and pkg-config needed to use reqwest
 
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
