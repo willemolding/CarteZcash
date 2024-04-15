@@ -49,7 +49,6 @@ jobs:
           with:
             node-version: 20
             registry-url: "https://registry.npmjs.org"
-        
 
         # required for the cross-compilation, else it will error with `exec format error
         - name: Set up QEMU
@@ -62,4 +61,5 @@ jobs:
             npm install -g @sunodo/cli
             sunodo build
             IMAGE_TAG=$(sunodo deploy build --platform linux/amd64 | grep "Application node Docker image" | awk '{print $NF}')
-            docker push $IMAGE_TAG:registry.fly.io/cartezcash:latest
+            docker tag $IMAGE_TAG registry.fly.io/cartezcash:latest
+            docker push registry.fly.io/cartezcash:latest

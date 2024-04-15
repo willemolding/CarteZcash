@@ -1,15 +1,11 @@
 name: Fly.io Deploy
 
 on:
-  workflow_run:
-    workflows: ["Publish Docker images"]
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   deploy-node:
     name: Deploy Cartesi node
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
@@ -21,7 +17,6 @@ jobs:
 
   deploy-fullnode:
     name: Deploy fullnode
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
