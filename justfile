@@ -9,12 +9,19 @@ run:
 run-local:
     ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run --features lightwalletd
 
-run-local-graphql:
+run-fullnode:
     ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/graphql GRPC_SERVER_URL="[::1]:50051" cargo run --no-default-features --features listen-graphql,lightwalletd 
-
 
 sunodo-nobackend:
     sunodo run --no-backend
+
+##### Docker
+
+build-fullnode-docker:
+    docker build -f fullnode.Dockerfile -t cartezcash/fullnode:latest .
+
+run-fullnode-docker:
+    docker run -it --rm -p 50051:50051 -e ROLLUP_HTTP_SERVER_URL=http://host.docker.internal:8080/graphql -e GRPC_SERVER_URL="[::1]:50051" cartezcash/fullnode:latest
 
 ##### Interact with dApp via sunodo
 

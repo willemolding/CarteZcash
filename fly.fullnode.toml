@@ -1,0 +1,23 @@
+app = "cartezcash-fullnode"
+
+[build]
+image = "registry.fly.io/cartezcash-fullnode"
+
+[[services]]
+  internal_port = 50051
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["tls"]
+    port = "443"
+
+  [services.ports.tls_options]
+    alpn = ["h2"]
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "2gb"
+
+[env]
+GRPC_SERVER_URL="[::1]:50051"
+ROLLUP_HTTP_SERVER_URL="http://cartezcash.internal:8080/graphql"
