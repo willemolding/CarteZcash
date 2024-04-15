@@ -1,7 +1,7 @@
 app = "cartezcash-fullnode"
 
 [build]
-image = "registry.fly.io/cartezcash-fullnode:latest"
+dockerfile = "fullnode.Dockerfile"
 
 [[services]]
   internal_port = 50051
@@ -20,4 +20,4 @@ memory = "2gb"
 
 [env]
 GRPC_SERVER_URL="[::1]:50051"
-ROLLUP_HTTP_SERVER_URL="http://cartezcash.internal:8080/graphql"
+ROLLUP_HTTP_SERVER_URL="http://cartezcash.internal/graphql"
