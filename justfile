@@ -10,7 +10,7 @@ run-local:
     ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run --features lightwalletd
 
 run-fullnode:
-    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/graphql GRPC_SERVER_URL="[::1]:50051" cargo run --no-default-features --features listen-graphql,lightwalletd 
+    ROLLUP_HTTP_SERVER_URL=https://cartezcash.fly.dev/graphql GRPC_SERVER_URL="[::1]:50051" cargo run --no-default-features --features listen-graphql,lightwalletd 
 
 sunodo-nobackend:
     sunodo run --no-backend
