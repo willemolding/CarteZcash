@@ -77,4 +77,3 @@ where
 {
     serializer.serialize_str(&format!("0x{}", hex::encode(data)))
 }
-
