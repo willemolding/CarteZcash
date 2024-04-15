@@ -25,6 +25,7 @@ jobs:
         run: |
           corepack enable
           yarn
+          yarn codegen
           yarn build
 
       - name: Deploy 🚀
