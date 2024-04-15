@@ -11,14 +11,12 @@ pub use response::Response;
 
 #[derive(Error, Debug)]
 pub enum Error<E> {
-    #[error("Hyper error: {0}")]
-    Hyper(#[from] hyper::Error),
+    #[error("Reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
     #[error("Deserialization error: {0}")]
     Serde(#[from] serde_json::Error),
     #[error("Deserialization hex parsing error: {0}")]
     HexParseError(#[from] hex::FromHexError),
-    #[error("Invalid URI: {0}")]
-    InvalidUri(#[from] hyper::http::uri::InvalidUri),
     #[error("Cartesi Service Error: {0}")]
     ServiceError(E),
 }
@@ -30,19 +28,21 @@ pub async fn listen_http<S>(service: &mut S, host_uri: &str) -> Result<(), Error
 where
     S: Service<Request, Response = Response>,
 {
-    let client = hyper::Client::new();
+    let client = reqwest::Client::new();
 
     let mut response = Response::empty_accept();
     loop {
-        // set the finish message and get the new request
-        let finish_http_request = response.finish_message().build_http_request(host_uri);
-        let resp = client.request(finish_http_request).await?;
-        if resp.status() == hyper::StatusCode::ACCEPTED {
+        let resp = client
+            .post(format!("{}/finish", host_uri))
+            .json(&response.finish_message())
+            .send()
+            .await?;
+
+        if resp.status() == reqwest::StatusCode::ACCEPTED {
             tracing::info!("No pending rollup request, trying again");
             continue; // no pending rollup request so run the loop again
         }
-        let body_bytes = hyper::body::to_bytes(resp.into_body()).await?;
-        let rollup_request: messages::RollupRequest = serde_json::from_slice(&body_bytes)?;
+        let rollup_request: messages::RollupRequest = resp.json().await?;
         let request = Request::try_from(rollup_request)?;
 
         // let the dapp process the request
@@ -50,9 +50,7 @@ where
 
         // handle the additional calls as required by the dApp outputs
         for output in response.outputs.iter() {
-            tracing::info!("Sending output {:?}", output);
-            let resp = client.request(output.build_http_request(host_uri)).await?;
-            tracing::info!("Output response: {:?}", resp.status());
+            tracing::info!("(mock) Sending output {:?}", output);
         }
     }
 }
@@ -80,7 +78,8 @@ pub async fn listen_graphql<S>(
 where
     S: Service<Request, Response = Response>,
 {
-    let client = hyper::Client::new();
+    // let client = hyper::Client::new();
+    let client = reqwest::Client::new();
     let mut cursor = None;
 
     loop {
@@ -88,21 +87,9 @@ where
             first: page_size as i64,
             after: cursor.clone(),
         });
-        let request = hyper::Request::builder()
-            .uri(host_uri)
-            .method("POST")
-            .header("Content-Type", "application/json")
-            .body(hyper::Body::from(
-                serde_json::to_string(&request_body).unwrap(),
-            ))
-            .unwrap();
-        tracing::info!("Sending raw request: {:?}", request);
-        let resp = client.request(request).await?;
-        let response_bytes = hyper::body::to_bytes(resp.into_body()).await?;
-        tracing::info!("Got raw response bytes: {:?}", response_bytes);
+        let resp = client.post(host_uri).json(&request_body).send().await?;
         let response_body: graphql_client::Response<inputs_query::ResponseData> =
-            serde_json::from_reader(&response_bytes[..])?;
-
+            resp.json().await?;
         for edge in response_body.data.unwrap().inputs.edges.into_iter() {
             cursor = Some(edge.cursor);
             service
