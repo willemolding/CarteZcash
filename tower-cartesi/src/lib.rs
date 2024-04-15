@@ -1,6 +1,6 @@
 use thiserror::Error;
-use tower_service::Service;
 use tokio::time::interval;
+use tower_service::Service;
 
 mod messages;
 mod request;
