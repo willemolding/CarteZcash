@@ -1,0 +1,35 @@
+app = "cartezcash"
+
+[build]
+image = "registry.fly.io/cartezcash:latest"
+
+[http_service]
+internal_port = 10000
+force_https = true
+
+[http_service.concurrency]
+type = "requests"
+soft_limit = 200
+hard_limit = 250
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/healthz"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "2gb"
+
+[env]
+CARTESI_BLOCKCHAIN_FINALITY_OFFSET = "1"
+CARTESI_BLOCKCHAIN_ID = "11155111"
+CARTESI_CONTRACTS_APPLICATION_ADDRESS = "0xb8017DF47f872946A01D3ad392e4c45AB7B67262"
+CARTESI_CONTRACTS_APPLICATION_DEPLOYMENT_BLOCK_NUMBER = "5700129"
+CARTESI_CONTRACTS_AUTHORITY_ADDRESS = "0x7858f8b09FFC111e9dfb4465ddCEe323654C25c3"
+CARTESI_CONTRACTS_HISTORY_ADDRESS = "0xD0ab8247fFc3d161dCCe7ca50B3B5aa78dE52412"
+CARTESI_CONTRACTS_INPUT_BOX_ADDRESS = "0x59b22D57D4f067708AB0c00552767405926dc768"
+CARTESI_CONTRACTS_INPUT_BOX_DEPLOYMENT_BLOCK_NUMBER = "3963384"
+CARTESI_EPOCH_DURATION = "86400"
