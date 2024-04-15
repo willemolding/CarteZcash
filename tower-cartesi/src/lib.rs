@@ -1,5 +1,6 @@
 use thiserror::Error;
 use tower_service::Service;
+use tokio::time::interval;
 
 mod messages;
 mod request;
@@ -74,13 +75,15 @@ pub async fn listen_graphql<S>(
     service: &mut S,
     host_uri: &str,
     page_size: usize,
+    frequency: std::time::Duration,
 ) -> Result<(), Error<S::Error>>
 where
     S: Service<Request, Response = Response>,
 {
-    // let client = hyper::Client::new();
     let client = reqwest::Client::new();
     let mut cursor = None;
+
+    let mut interval = interval(frequency);
 
     loop {
         let request_body = InputsQuery::build_query(inputs_query::Variables {
@@ -97,5 +100,6 @@ where
                 .await
                 .map_err(Error::ServiceError)?;
         }
+        interval.tick().await;
     }
 }
