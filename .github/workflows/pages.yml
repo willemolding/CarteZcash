@@ -30,6 +30,8 @@ jobs:
           yarn build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
+        with:
+          path: build
 
   # Deployment job
   deploy:
