@@ -96,9 +96,12 @@ where
                 serde_json::to_string(&request_body).unwrap(),
             ))
             .unwrap();
+        tracing::info!("Sending raw request: {:?}", request);
         let resp = client.request(request).await?;
+        let response_bytes = hyper::body::to_bytes(resp.into_body()).await?;
+        tracing::info!("Got raw response bytes: {:?}", response_bytes);
         let response_body: graphql_client::Response<inputs_query::ResponseData> =
-            serde_json::from_reader(&hyper::body::to_bytes(resp.into_body()).await?[..])?;
+            serde_json::from_reader(&response_bytes[..])?;
 
         for edge in response_body.data.unwrap().inputs.edges.into_iter() {
             cursor = Some(edge.cursor);

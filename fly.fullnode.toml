@@ -20,4 +20,4 @@ memory = "2gb"
 
 [env]
 GRPC_SERVER_URL="[::1]:50051"
-ROLLUP_HTTP_SERVER_URL="http://cartezcash.internal/graphql"
+ROLLUP_HTTP_SERVER_URL="http://cartezcash.fly.dev/graphql"
