@@ -1,35 +1,22 @@
-app = "cartezcash"
+# fly.toml app configuration file generated for cartezcash-fullnode on 2024-04-15T19:46:18+10:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'cartezcash-fullnode'
+primary_region = 'ord'
 
 [build]
-image = "registry.fly.io/cartezcash:latest"
 
 [http_service]
-internal_port = 10000
-force_https = true
-
-[http_service.concurrency]
-type = "requests"
-soft_limit = 200
-hard_limit = 250
-
-[[http_service.checks]]
-grace_period = "10s"
-interval = "30s"
-method = "GET"
-timeout = "5s"
-path = "/healthz"
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[vm]]
-size = "shared-cpu-1x"
-memory = "2gb"
-
-[env]
-CARTESI_BLOCKCHAIN_FINALITY_OFFSET = "1"
-CARTESI_BLOCKCHAIN_ID = "11155111"
-CARTESI_CONTRACTS_APPLICATION_ADDRESS = "0x47432A4070539BeF308B24a7AAE2940b801d0681"
-CARTESI_CONTRACTS_APPLICATION_DEPLOYMENT_BLOCK_NUMBER = "5701493"
-CARTESI_CONTRACTS_AUTHORITY_ADDRESS = "0xf08C66979E9297bb16BB13f70Eb237b75A73Bbd0"
-CARTESI_CONTRACTS_HISTORY_ADDRESS = "0xed488E391616f44ACf13e62Ee615da8E8D079dD5"
-CARTESI_CONTRACTS_INPUT_BOX_ADDRESS = "0x59b22D57D4f067708AB0c00552767405926dc768"
-CARTESI_CONTRACTS_INPUT_BOX_DEPLOYMENT_BLOCK_NUMBER = "3963384"
-CARTESI_EPOCH_DURATION = "86400"
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
