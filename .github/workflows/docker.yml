@@ -52,5 +52,6 @@ jobs:
         - name: Install Sunodo and build
           run: |
             npm install -g @sunodo/cli
+            sunodo build
             IMAGE_TAG=$(sunodo deploy build --platform linux/amd64 | grep "Application node Docker image" | awk '{print $NF}')
             docker push $IMAGE_TAG:registry.fly.io/cartezcash:latest
