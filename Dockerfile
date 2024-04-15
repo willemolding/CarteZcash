@@ -15,8 +15,7 @@ apt install -y --no-install-recommends \
     ca-certificates=20230311ubuntu0.22.04.1 \
     g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
     wget=1.21.2-2ubuntu1 \
-    libclang-dev \ 
-    libssl-dev pkg-config
+    libclang-dev
 EOF
 # libclang needed to build rocksdb. Can remove once this is no longer needed.
 # libssl-dev and pkg-config needed to use reqwest

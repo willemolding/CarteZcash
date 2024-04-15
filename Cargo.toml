@@ -40,7 +40,7 @@ default = ["listen-http"]
 lightwalletd = ["dep:cartezcash-lightwalletd", "dep:tonic", "dep:zebra-state"]
 preinitialize-halo2 = []
 listen-http = []
-listen-graphql = []
+listen-graphql = ["tower-cartesi/tls"]
 
 [workspace]
 members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]
