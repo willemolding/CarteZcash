@@ -60,6 +60,7 @@ jobs:
           run: |
             npm install -g @sunodo/cli
             sunodo build
+            sunodo hash >> $GITHUB_OUTPUT
             IMAGE_TAG=$(sunodo deploy build --platform linux/amd64 | grep "Application node Docker image" | awk '{print $NF}')
             docker tag $IMAGE_TAG registry.fly.io/cartezcash:latest
             docker push registry.fly.io/cartezcash:latest
