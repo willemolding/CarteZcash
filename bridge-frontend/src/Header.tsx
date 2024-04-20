@@ -75,7 +75,7 @@ export default function WithSubnavigation() {
                                 );
                             })}
                         </Select>
-                        <Menu>
+                        <Menu closeOnBlur closeOnSelect>
                             <MenuButton
                                 as={Button}
                                 rightIcon={<ChevronDownIcon />}
@@ -88,6 +88,7 @@ export default function WithSubnavigation() {
                                     onClick={() => {
                                         disconnect(wallet);
                                     }}
+                                    maxWidth={"205px"}
                                 >
                                     Disconnect
                                 </MenuItem>
