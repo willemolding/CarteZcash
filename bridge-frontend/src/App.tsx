@@ -12,7 +12,7 @@
 
 import { FC } from "react";
 import injectedModule from "@web3-onboard/injected-wallets";
-import { init } from "@web3-onboard/react";
+import { init, useConnectWallet } from "@web3-onboard/react";
 import { useState } from "react";
 
 import { GraphQLProvider } from "./GraphQL";
@@ -29,6 +29,9 @@ import {
     SimpleGrid,
     useColorMode,
     Button,
+    Heading,
+    Text,
+    Image,
 } from "@chakra-ui/react";
 import banner from "./banner.png";
 
@@ -58,11 +61,29 @@ const App: FC = () => {
         "0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C"
     );
 
+    const [{ wallet, connecting }, connect] = useConnectWallet();
+
     return (
         <SimpleGrid columns={1} marginX={"25%"}>
-            {/* <img src={banner} alt="Banner" /> */}
-
-            {/* <Network /> */}
+            {!wallet && (
+                <Box mt="20" alignContent="center">
+                    <Stack>
+                        <Heading>CarteZcash Bridge</Heading>
+                        <Text>
+                            Connect a wallet to deposit or withdraw Eth from the
+                            rollup
+                        </Text>
+                        <Image src={banner} alt="Banner" />
+                        <Button
+                            onClick={() => connect()}
+                            marginY={"100px"}
+                            disabled={connecting}
+                        >
+                            {connecting ? "Connecting" : "Connect"}
+                        </Button>
+                    </Stack>
+                </Box>
+            )}
             <GraphQLProvider>
                 <Stack>
                     <Box alignItems="baseline" marginLeft="2" mt="0">
