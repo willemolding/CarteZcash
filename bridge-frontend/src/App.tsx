@@ -20,16 +20,29 @@ import { Transfers } from "./Transfers";
 import { Network } from "./Network";
 import configFile from "./config.json";
 import "./App.css";
-import {Input, Box, InputGroup, InputLeftAddon, Stack, SimpleGrid} from "@chakra-ui/react"
+import {
+    Input,
+    Box,
+    InputGroup,
+    InputLeftAddon,
+    Stack,
+    SimpleGrid,
+    useColorMode,
+    Button,
+} from "@chakra-ui/react";
 import banner from "./banner.png";
-
 
 const config: any = configFile;
 
 const injected: any = injectedModule();
 init({
     wallets: [injected],
-    chains: Object.entries(config).map(([k, v]: [string, any], i) => ({id: k, token: v.token, label: v.label, rpcUrl: v.rpcUrl})),
+    chains: Object.entries(config).map(([k, v]: [string, any], i) => ({
+        id: k,
+        token: v.token,
+        label: v.label,
+        rpcUrl: v.rpcUrl,
+    })),
     appMetadata: {
         name: "Cartesi Rollups Test DApp",
         icon: "<svg><svg/>",
@@ -41,37 +54,37 @@ init({
 });
 
 const App: FC = () => {
-    const [dappAddress, setDappAddress] = useState<string>("0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C");
+    const [dappAddress, setDappAddress] = useState<string>(
+        "0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C"
+    );
 
     return (
-        <SimpleGrid columns={1} marginLeft={'25%'} marginRight={'25%'}>  
-        <img src={banner} alt="Banner" />
-        <Network />
-        <GraphQLProvider>
-            <Stack>
-                <Box alignItems='baseline' marginLeft='2' mt='0'>
-                    
-                <InputGroup size='xs'>
-                <InputLeftAddon>
-                    Dapp Address
-                </InputLeftAddon> 
-                <Input 
-                    width='auto'
-                    size='xs'
-                    className="address-textbox"
-                    type="text"
-                    value={dappAddress}
-                    onChange={(e) => setDappAddress(e.target.value)}
-                />
-                </ InputGroup >
-                <br /><br />
-                </Box>
-            </Stack>
+        <SimpleGrid columns={1} marginX={"25%"}>
+            {/* <img src={banner} alt="Banner" /> */}
 
+            {/* <Network /> */}
+            <GraphQLProvider>
+                <Stack>
+                    <Box alignItems="baseline" marginLeft="2" mt="0">
+                        <InputGroup size="xs">
+                            <InputLeftAddon>Dapp Address</InputLeftAddon>
+                            <Input
+                                width="auto"
+                                size="xs"
+                                className="address-textbox"
+                                type="text"
+                                value={dappAddress}
+                                onChange={(e) => setDappAddress(e.target.value)}
+                            />
+                        </InputGroup>
+                        <br />
+                        <br />
+                    </Box>
+                </Stack>
                 <br />
-                    <br /> <br />
-                    <Transfers dappAddress={dappAddress} />
-                    <br /> <br />
+                <br /> <br />
+                <Transfers dappAddress={dappAddress} />
+                <br /> <br />
             </GraphQLProvider>
         </SimpleGrid>
     );

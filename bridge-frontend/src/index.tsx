@@ -12,14 +12,19 @@
 
 import React from "react";
 import App from "./App";
-import { ChakraProvider } from '@chakra-ui/react'
+import Header from "./Header";
 
-import { createRoot } from 'react-dom/client';
-const container = document.getElementById('root');
+import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
+import theme from "./theme";
+import { createRoot } from "react-dom/client";
+
+const container = document.getElementById("root");
 const root = createRoot(container!); // createRoot(container!) if you use TypeScript
 root.render(
     <React.StrictMode>
         <ChakraProvider>
+            <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+            <Header />
             <App />
         </ChakraProvider>
     </React.StrictMode>
