@@ -26,10 +26,12 @@ const useGraphQL = () => {
         }
         let url = "";
 
-        if(config[connectedChain.id]?.graphqlAPIURL) {
+        if (config[connectedChain.id]?.graphqlAPIURL) {
             url = `${config[connectedChain.id].graphqlAPIURL}/graphql`;
         } else {
-            console.error(`No GraphQL interface defined for chain ${connectedChain.id}`);
+            console.error(
+                `No GraphQL interface defined for chain ${connectedChain.id}`
+            );
             return null;
         }
 
@@ -46,7 +48,6 @@ export const GraphQLProvider: any = (props: any) => {
     if (!client) {
         return <div />;
     }
-    
+
     return <Provider value={client}>{props.children}</Provider>;
 };
-
