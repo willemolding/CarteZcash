@@ -64,7 +64,7 @@ const App: FC = () => {
     const [{ wallet, connecting }, connect] = useConnectWallet();
 
     return (
-        <SimpleGrid columns={1} marginX={"25%"}>
+        <SimpleGrid columns={1} marginX={"25%"} alignContent={"center"}>
             {!wallet && (
                 <Box mt="20" alignContent="center">
                     <Stack>
@@ -98,14 +98,9 @@ const App: FC = () => {
                                 onChange={(e) => setDappAddress(e.target.value)}
                             />
                         </InputGroup>
-                        <br />
-                        <br />
                     </Box>
                 </Stack>
-                <br />
-                <br /> <br />
                 <Transfers dappAddress={dappAddress} />
-                <br /> <br />
             </GraphQLProvider>
         </SimpleGrid>
     );

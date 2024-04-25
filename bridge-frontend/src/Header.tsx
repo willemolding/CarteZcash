@@ -16,7 +16,7 @@ import {
     MenuList,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
-import { FC } from "react";
+import { FC, useState } from "react";
 import { useConnectWallet, useSetChain } from "@web3-onboard/react";
 import configFile from "./config.json";
 
@@ -25,9 +25,9 @@ const config: any = configFile;
 export default function WithSubnavigation() {
     const { colorMode, toggleColorMode } = useColorMode();
 
-    const { isOpen, onToggle } = useDisclosure();
     const [{ wallet, connecting }, connect, disconnect] = useConnectWallet();
     const [{ chains, connectedChain, settingChain }, setChain] = useSetChain();
+    const [dappAddress, setDappAddress] = useState<string>();
 
     return (
         <Box>
@@ -47,6 +47,7 @@ export default function WithSubnavigation() {
                     <Text fontSize="xl" fontWeight="bold">
                         CarteZcash Bridge \ or LOGO
                     </Text>
+                    <Text>{dappAddress}</Text>
                 </Flex>
                 <IconButton
                     icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}

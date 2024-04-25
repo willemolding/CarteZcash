@@ -103,18 +103,19 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     const [transactionHex, setTransactionHex] = useState<string>("");
 
     return (
-        <Card colorScheme="blackAlpha">
+        <Card colorScheme="blackAlpha" marginY={20} rounded={15}>
             <Tabs
                 colorScheme="blackAlpha"
                 isFitted
                 variant="soft-rounded"
+                borderRadius={2}
                 size="lg"
                 align="center"
             >
-                <TabList margin={5} rounded={10}>
-                    <Tab>🚀 Deposit</Tab>
-                    <Tab>🔄 Transact</Tab>
-                    <Tab>🎟️ Withdraw</Tab>
+                <TabList margin={5} rounded={10} bg={"#e0e2eb"}>
+                    <Tab borderRadius={10}>🚀 Deposit</Tab>
+                    <Tab borderRadius={10}>🔄 Transact</Tab>
+                    <Tab borderRadius={10}>🎟️ Withdraw</Tab>
                 </TabList>
                 <Box p={4} display="flex">
                     <TabPanels>
@@ -148,7 +149,6 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                                     }
                                 ></Input>
                                 <Button
-                                    colorScheme="blue"
                                     size="sm"
                                     onClick={() => {
                                         depositEtherToPortal(
