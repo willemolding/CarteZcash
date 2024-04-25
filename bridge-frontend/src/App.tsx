@@ -68,9 +68,9 @@ const App: FC = () => {
     return (
         <>
             <Header dappAddress={dappAddress} setDappAddress={setDappAddress} />
-            <SimpleGrid columns={1} marginX={"25%"} alignContent={"center"}>
+            <SimpleGrid columns={1} marginX={"30%"} alignContent={"center"}>
                 {!wallet && (
-                    <Box mt="20" alignContent="center">
+                    <Box mt="28px" alignContent="center">
                         <Stack>
                             <Heading>CarteZcash Bridge</Heading>
                             <Text>

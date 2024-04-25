@@ -21,6 +21,7 @@ import {
     TabPanel,
     Tab,
     Card,
+    useColorMode,
 } from "@chakra-ui/react";
 import { Button, Box } from "@chakra-ui/react";
 import {
@@ -45,6 +46,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     const provider = new ethers.providers.Web3Provider(
         connectedWallet.provider
     );
+    const { colorMode, toggleColorMode } = useColorMode();
 
     const sendAddress = async () => {
         if (rollups) {
@@ -103,7 +105,13 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     const [transactionHex, setTransactionHex] = useState<string>("");
 
     return (
-        <Card colorScheme="blackAlpha" marginY={20} rounded={15}>
+        <Card
+            colorScheme="blackAlpha"
+            marginY={"28px"}
+            rounded={24}
+            borderWidth={"1px"}
+            borderColor={"#e0e2eb"}
+        >
             <Tabs
                 colorScheme="blackAlpha"
                 isFitted
@@ -112,10 +120,44 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                 size="lg"
                 align="center"
             >
-                <TabList margin={5} rounded={10} bg={"#e0e2eb"}>
-                    <Tab borderRadius={10}>Deposit</Tab>
-                    <Tab borderRadius={10}>Transact</Tab>
-                    <Tab borderRadius={10}>Withdraw</Tab>
+                <TabList
+                    margin={5}
+                    rounded={8}
+                    bg={colorMode === "light" ? "#e0e2eb" : "#bcbfcd"}
+                >
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
+                    >
+                        Deposit
+                    </Tab>
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
+                    >
+                        Transact
+                    </Tab>
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
+                    >
+                        Withdraw
+                    </Tab>
                 </TabList>
                 <Box p={4} display="flex">
                     <TabPanels>
