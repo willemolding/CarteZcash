@@ -113,9 +113,9 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                 align="center"
             >
                 <TabList margin={5} rounded={10} bg={"#e0e2eb"}>
-                    <Tab borderRadius={10}>🚀 Deposit</Tab>
-                    <Tab borderRadius={10}>🔄 Transact</Tab>
-                    <Tab borderRadius={10}>🎟️ Withdraw</Tab>
+                    <Tab borderRadius={10}>Deposit</Tab>
+                    <Tab borderRadius={10}>Transact</Tab>
+                    <Tab borderRadius={10}>Withdraw</Tab>
                 </TabList>
                 <Box p={4} display="flex">
                     <TabPanels>
@@ -179,7 +179,6 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                                     }
                                 ></Input>
                                 <Button
-                                    colorScheme="blue"
                                     size="sm"
                                     onClick={() => {
                                         sendTransaction(transactionHex);

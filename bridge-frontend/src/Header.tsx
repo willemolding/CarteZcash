@@ -14,20 +14,21 @@ import {
     MenuButton,
     MenuItem,
     MenuList,
+    Input,
+    FormLabel,
+    FormControl,
 } from "@chakra-ui/react";
 import { ChevronDownIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
-import { FC, useState } from "react";
 import { useConnectWallet, useSetChain } from "@web3-onboard/react";
 import configFile from "./config.json";
 
 const config: any = configFile;
 
-export default function WithSubnavigation() {
+export default function Header(props: any) {
     const { colorMode, toggleColorMode } = useColorMode();
 
     const [{ wallet, connecting }, connect, disconnect] = useConnectWallet();
     const [{ chains, connectedChain, settingChain }, setChain] = useSetChain();
-    const [dappAddress, setDappAddress] = useState<string>();
 
     return (
         <Box>
@@ -41,14 +42,40 @@ export default function WithSubnavigation() {
                 align={"center"}
             >
                 <Flex
-                    flex={{ base: 1 }}
+                    flex={{ base: wallet ? undefined : 1 }}
                     justify={{ base: "center", md: "start" }}
                 >
-                    <Text fontSize="xl" fontWeight="bold">
-                        CarteZcash Bridge \ or LOGO
+                    <Text fontSize="l" fontWeight="bold" marginRight={"0px"}>
+                        CarteZcash Bridge
                     </Text>
-                    <Text>{dappAddress}</Text>
                 </Flex>
+                {wallet && (
+                    <Flex
+                        flex={{ base: 1 }}
+                        justify={{ base: "center", md: "start" }}
+                        marginX={"40px"}
+                    >
+                        <FormControl
+                            variant="floating"
+                            id="dapp-address"
+                            isRequired={props.dappAddress === ""}
+                            isInvalid={
+                                !/^0x[a-fA-F0-9]{40}$/.test(props.dappAddress)
+                            }
+                        >
+                            <Input
+                                value={props.dappAddress}
+                                placeholder={" "}
+                                width={"auto"}
+                                onChange={(e) => {
+                                    props.setDappAddress(e.target.value);
+                                }}
+                                required
+                            />
+                            <FormLabel>Dapp Address</FormLabel>
+                        </FormControl>
+                    </Flex>
+                )}
                 <IconButton
                     icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
                     onClick={toggleColorMode}

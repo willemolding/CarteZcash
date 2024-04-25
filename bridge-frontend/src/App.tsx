@@ -32,8 +32,10 @@ import {
     Heading,
     Text,
     Image,
+    extendTheme,
 } from "@chakra-ui/react";
 import banner from "./banner.png";
+import Header from "./Header";
 
 const config: any = configFile;
 
@@ -64,45 +66,33 @@ const App: FC = () => {
     const [{ wallet, connecting }, connect] = useConnectWallet();
 
     return (
-        <SimpleGrid columns={1} marginX={"25%"} alignContent={"center"}>
-            {!wallet && (
-                <Box mt="20" alignContent="center">
-                    <Stack>
-                        <Heading>CarteZcash Bridge</Heading>
-                        <Text>
-                            Connect a wallet to deposit or withdraw Eth from the
-                            rollup
-                        </Text>
-                        <Image src={banner} alt="Banner" />
-                        <Button
-                            onClick={() => connect()}
-                            marginY={"100px"}
-                            disabled={connecting}
-                        >
-                            {connecting ? "Connecting" : "Connect"}
-                        </Button>
-                    </Stack>
-                </Box>
-            )}
-            <GraphQLProvider>
-                <Stack>
-                    <Box alignItems="baseline" marginLeft="2" mt="0">
-                        <InputGroup size="xs">
-                            <InputLeftAddon>Dapp Address</InputLeftAddon>
-                            <Input
-                                width="auto"
-                                size="xs"
-                                className="address-textbox"
-                                type="text"
-                                value={dappAddress}
-                                onChange={(e) => setDappAddress(e.target.value)}
-                            />
-                        </InputGroup>
+        <>
+            <Header dappAddress={dappAddress} setDappAddress={setDappAddress} />
+            <SimpleGrid columns={1} marginX={"25%"} alignContent={"center"}>
+                {!wallet && (
+                    <Box mt="20" alignContent="center">
+                        <Stack>
+                            <Heading>CarteZcash Bridge</Heading>
+                            <Text>
+                                Connect a wallet to deposit or withdraw Eth from
+                                the rollup
+                            </Text>
+                            <Image src={banner} alt="Banner" />
+                            <Button
+                                onClick={() => connect()}
+                                marginY={"100px"}
+                                disabled={connecting}
+                            >
+                                {connecting ? "Connecting" : "Connect"}
+                            </Button>
+                        </Stack>
                     </Box>
-                </Stack>
-                <Transfers dappAddress={dappAddress} />
-            </GraphQLProvider>
-        </SimpleGrid>
+                )}
+                <GraphQLProvider>
+                    <Transfers dappAddress={dappAddress} />
+                </GraphQLProvider>
+            </SimpleGrid>
+        </>
     );
 };
 
