@@ -9,19 +9,30 @@ run:
 run-local:
     ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run --features lightwalletd
 
+run-fullnode:
+    ROLLUP_HTTP_SERVER_URL=https://cartezcash.fly.dev/graphql GRPC_SERVER_URL="[::1]:50051" cargo run --no-default-features --features listen-graphql,lightwalletd 
+
 sunodo-nobackend:
     sunodo run --no-backend
+
+##### Docker
+
+build-fullnode-docker:
+    docker build -f fullnode.Dockerfile -t cartezcash/fullnode:latest .
+
+run-fullnode-docker:
+    docker run -it --rm -p 50051:50051 -e ROLLUP_HTTP_SERVER_URL=http://host.docker.internal:8080/graphql -e GRPC_SERVER_URL="[::1]:50051" cartezcash/fullnode:latest
 
 ##### Interact with dApp via sunodo
 
 @deposit address amount:
-    sunodo send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+    sunodo send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 @send txn_hex:
-    sunodo send generic --input="0x$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+    sunodo send generic --input="0x$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 execute_voucher:
-    cast send 0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C "executeVoucher(address, bytes, struct Proof _proof)"
+    cast send 0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e "executeVoucher(address, bytes, struct Proof _proof)"
 
 ##### wallet related commands
 

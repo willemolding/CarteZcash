@@ -13,9 +13,9 @@ apt update
 apt install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     ca-certificates=20230311ubuntu0.22.04.1 \
-    g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
     wget=1.21.2-2ubuntu1 \
-    libclang-dev
+    libclang-dev \
+    libssl-dev pkg-config
 EOF
 # libclang needed to build rocksdb. Can remove once this is no longer needed.
 # libssl-dev and pkg-config needed to use reqwest
@@ -40,7 +40,6 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
-RUN rustup target add riscv64gc-unknown-linux-gnu
 RUN cargo install cargo-chef
 WORKDIR /opt/cartesi/cartezcash
 
@@ -50,42 +49,21 @@ FROM base AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-### Builder cross-compiles the dapp for riscv64
+### Builder compiles the service
 
 FROM base as builder
 COPY --from=planner /opt/cartesi/cartezcash/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json  --target riscv64gc-unknown-linux-gnu
+RUN cargo chef cook --release --recipe-path recipe.json --no-default-features --features listen-graphql,lightwalletd
 COPY . .
-RUN cargo build --release --target riscv64gc-unknown-linux-gnu
+RUN cargo build --release --no-default-features --features listen-graphql,lightwalletd
 
 ### final image is the dapp itself
 
-FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
-
-ARG MACHINE_EMULATOR_TOOLS_VERSION=0.14.1
-ADD https://github.com/cartesi/machine-emulator-tools/releases/download/v${MACHINE_EMULATOR_TOOLS_VERSION}/machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb /
-RUN dpkg -i /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb \
-    && rm /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb
-
-LABEL io.sunodo.sdk_version=0.4.0
-LABEL io.cartesi.rollups.ram_size=256Mi
-
-ARG DEBIAN_FRONTEND=noninteractive
-RUN <<EOF
-set -e
-apt-get update
-apt-get install -y --no-install-recommends \
-    busybox-static=1:1.30.1-7ubuntu3
-rm -rf /var/lib/apt/lists/* /var/log/* /var/cache/*
-useradd --create-home --user-group dapp
-EOF
+FROM ubuntu:22.04
 
 ENV PATH="/opt/cartesi/bin:/opt/cartesi/cartezcash:${PATH}"
 
 WORKDIR /opt/cartesi/cartezcash
-COPY --from=builder /opt/cartesi/cartezcash/target/riscv64gc-unknown-linux-gnu/release/cartezcash .
+COPY --from=builder /opt/cartesi/cartezcash/target/release/cartezcash .
 
-ENV ROLLUP_HTTP_SERVER_URL="http://127.0.0.1:5004"
-
-ENTRYPOINT ["rollup-init"]
 CMD ["cartezcash"]

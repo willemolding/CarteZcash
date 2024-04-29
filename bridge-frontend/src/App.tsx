@@ -59,9 +59,7 @@ init({
 });
 
 const App: FC = () => {
-    const [dappAddress, setDappAddress] = useState<string>(
-        "0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C"
-    );
+    const [dappAddress, setDappAddress] = useState<string>("0x47432A4070539BeF308B24a7AAE2940b801d0681");
 
     const [{ wallet, connecting }, connect] = useConnectWallet();
 

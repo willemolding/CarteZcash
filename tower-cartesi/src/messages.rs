@@ -1,4 +1,3 @@
-use hyper::Uri;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -24,17 +23,6 @@ impl Finish {
         Self {
             status: Status::Reject,
         }
-    }
-
-    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
-        let finish_uri = format!("{}/finish", host_uri);
-
-        hyper::Request::builder()
-            .method(hyper::Method::POST)
-            .header(hyper::header::CONTENT_TYPE, "application/json")
-            .uri(finish_uri)
-            .body(hyper::Body::from(serde_json::to_string(self).unwrap()))
-            .unwrap()
     }
 }
 
@@ -88,21 +76,4 @@ where
     S: serde::Serializer,
 {
     serializer.serialize_str(&format!("0x{}", hex::encode(data)))
-}
-
-impl Output {
-    pub fn build_http_request(&self, host_uri: Uri) -> hyper::Request<hyper::Body> {
-        let uri = match self {
-            Self::Notice { .. } => format!("{}/notice", host_uri),
-            Self::Report { .. } => format!("{}/report", host_uri),
-            Self::Voucher { .. } => format!("{}/voucher", host_uri),
-        };
-
-        hyper::Request::builder()
-            .method(hyper::Method::POST)
-            .header(hyper::header::CONTENT_TYPE, "application/json")
-            .uri(uri)
-            .body(hyper::Body::from(serde_json::to_string(self).unwrap()))
-            .unwrap()
-    }
 }

@@ -36,9 +36,11 @@ cartezcash-lightwalletd = { path = "cartezcash-lightwalletd", optional = true }
 tower-cartesi = { path = "tower-cartesi" }
 
 [features]
-default = []
+default = ["listen-http"]
 lightwalletd = ["dep:cartezcash-lightwalletd", "dep:tonic", "dep:zebra-state"]
 preinitialize-halo2 = []
+listen-http = []
+listen-graphql = ["tower-cartesi/tls"]
 
 [workspace]
 members = [ "cartezcash-lightwalletd", "tiny-cash", "tower-cartesi"]

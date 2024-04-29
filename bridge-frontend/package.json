@@ -2,6 +2,7 @@
     "name": "cartezcash-bridge-frontend",
     "version": "0.1.0",
     "private": true,
+    "homepage": ".",
     "dependencies": {
         "@cartesi/rollups": "1.0.0",
         "@chakra-ui/icons": "^2.1.1",
