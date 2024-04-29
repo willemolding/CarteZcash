@@ -14,174 +14,258 @@ import React, { useState } from "react";
 import { ethers } from "ethers";
 import { useRollups } from "./useRollups";
 import { useWallets } from "@web3-onboard/react";
-import { Tabs, TabList, TabPanels, TabPanel, Tab } from "@chakra-ui/react";
+import {
+    Tabs,
+    TabList,
+    TabPanels,
+    TabPanel,
+    Tab,
+    Card,
+    useColorMode,
+} from "@chakra-ui/react";
 import { Button, Box } from "@chakra-ui/react";
 import {
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+    NumberInput,
+    NumberInputField,
+    NumberInputStepper,
+    NumberIncrementStepper,
+    NumberDecrementStepper,
 } from "@chakra-ui/react";
 import { Input, Stack } from "@chakra-ui/react";
-import {
-  Accordion,
-} from "@chakra-ui/react";
+import { Accordion } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
 
 interface IInputPropos {
-  dappAddress: string;
+    dappAddress: string;
 }
 
 export const Transfers: React.FC<IInputPropos> = (propos) => {
-  const rollups = useRollups(propos.dappAddress);
-  const [connectedWallet] = useWallets();
-  const provider = new ethers.providers.Web3Provider(connectedWallet.provider);
+    const rollups = useRollups(propos.dappAddress);
+    const [connectedWallet] = useWallets();
+    const provider = new ethers.providers.Web3Provider(
+        connectedWallet.provider
+    );
+    const { colorMode, toggleColorMode } = useColorMode();
 
-  const sendAddress = async () => {
-    if (rollups) {
-      try {
-        await rollups.relayContract.relayDAppAddress(propos.dappAddress);
-        setDappRelayedAddress(true);
-      } catch (e) {
-        console.log(`${e}`);
-      }
-    }
-  };
-  
-  const depositEtherToPortal = async (amount: number, destAddress: string) => {
-    try {
-      if (rollups && provider) {
-        const data = ethers.utils.arrayify(destAddress);
-        const txOverrides = { value: ethers.utils.parseEther(`${amount}`) };
-        console.log("Ether to deposit: ", txOverrides);
+    const sendAddress = async () => {
+        if (rollups) {
+            try {
+                await rollups.relayContract.relayDAppAddress(
+                    propos.dappAddress
+                );
+                setDappRelayedAddress(true);
+            } catch (e) {
+                console.log(`${e}`);
+            }
+        }
+    };
 
-        // const tx = await ...
-        rollups.etherPortalContract.depositEther(
-          propos.dappAddress,
-          data,
-          txOverrides
-        );
-      }
-    } catch (e) {
-      console.log(`${e}`);
-    }
-  };
+    const depositEtherToPortal = async (
+        amount: number,
+        destAddress: string
+    ) => {
+        try {
+            if (rollups && provider) {
+                const data = ethers.utils.arrayify(destAddress);
+                const txOverrides = {
+                    value: ethers.utils.parseEther(`${amount}`),
+                };
+                console.log("Ether to deposit: ", txOverrides);
 
-  const sendTransaction = async (transactionHex: string) => {
-    try {
-      if (rollups && provider) {
-        const input = ethers.utils.arrayify(transactionHex);
+                // const tx = await ...
+                rollups.etherPortalContract.depositEther(
+                    propos.dappAddress,
+                    data,
+                    txOverrides
+                );
+            }
+        } catch (e) {
+            console.log(`${e}`);
+        }
+    };
 
-        rollups.inputContract.addInput(
-          propos.dappAddress,
-          input,
-        );
-      }
-    } catch (e) {
-      console.log(`${e}`);
-    }
-  };
+    const sendTransaction = async (transactionHex: string) => {
+        try {
+            if (rollups && provider) {
+                const input = ethers.utils.arrayify(transactionHex);
 
-  const [dappRelayedAddress, setDappRelayedAddress] = useState<boolean>(false)
-  const [etherAmount, setEtherAmount] = useState<number>(0);
-  const [destAddress, setDestAddress] = useState<string>("");
+                rollups.inputContract.addInput(propos.dappAddress, input);
+            }
+        } catch (e) {
+            console.log(`${e}`);
+        }
+    };
 
-  const [transactionHex, setTransactionHex] = useState<string>("");
+    const [dappRelayedAddress, setDappRelayedAddress] =
+        useState<boolean>(false);
+    const [etherAmount, setEtherAmount] = useState<number>(0);
+    const [destAddress, setDestAddress] = useState<string>("");
 
-  return (
-    <Tabs variant="enclosed" size="lg" align="center">
-      <TabList>
-        <Tab>🚀 Deposit</Tab>
-        <Tab>🔄 Transact</Tab>
-        <Tab>🎟️ Withdraw</Tab>
-      </TabList>
-      <Box p={4} display="flex">
-        <TabPanels>
-          <TabPanel>
-            <Text fontSize="sm" color="grey">
-              Deposit Eth to bridge it to CarteZcash
-            </Text>
-            <br />
-                  <Stack>
-                    <label>Amount (Eth)</label>
+    const [transactionHex, setTransactionHex] = useState<string>("");
 
-                    <NumberInput
-                      defaultValue={0}
-                      min={0}
-                      onChange={(value) => setEtherAmount(Number(value))}
-                      value={etherAmount}
+    return (
+        <Card
+            colorScheme="blackAlpha"
+            marginY={"28px"}
+            rounded={24}
+            borderWidth={"1px"}
+            borderColor={"#e0e2eb"}
+        >
+            <Tabs
+                colorScheme="blackAlpha"
+                isFitted
+                variant="soft-rounded"
+                borderRadius={2}
+                size="lg"
+                align="center"
+            >
+                <TabList
+                    margin={5}
+                    rounded={8}
+                    bg={colorMode === "light" ? "#e0e2eb" : "#bcbfcd"}
+                >
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
                     >
-                      <NumberInputField />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                    <label>Destination Address</label>
-                    <Input value={destAddress} onChange={(e) => setDestAddress(e.target.value)}></Input>
-                    <Button
-                      colorScheme="blue"
-                      size="sm"
-                      onClick={() => {
-                        depositEtherToPortal(etherAmount, destAddress);
-                      }}
-                      disabled={!rollups}
+                        Deposit
+                    </Tab>
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
                     >
-                      Deposit
-                    </Button>
-                  </Stack>
-                  <br />
+                        Transact
+                    </Tab>
+                    <Tab
+                        margin={1}
+                        padding={2}
+                        borderRadius={8}
+                        _selected={{
+                            bg: colorMode === "light" ? "#f2f3f8" : "#232634",
+                        }}
+                        color={colorMode === "light" ? "black" : "white"}
+                    >
+                        Withdraw
+                    </Tab>
+                </TabList>
+                <Box p={4} display="flex">
+                    <TabPanels>
+                        <TabPanel>
+                            <Text fontSize="sm" color="grey">
+                                Deposit Eth to bridge it to CarteZcash
+                            </Text>
+                            <br />
+                            <Stack>
+                                <label>Amount (Eth)</label>
 
-          </TabPanel>
+                                <NumberInput
+                                    defaultValue={0}
+                                    min={0}
+                                    onChange={(value) =>
+                                        setEtherAmount(Number(value))
+                                    }
+                                    value={etherAmount}
+                                >
+                                    <NumberInputField />
+                                    <NumberInputStepper>
+                                        <NumberIncrementStepper />
+                                        <NumberDecrementStepper />
+                                    </NumberInputStepper>
+                                </NumberInput>
+                                <label>Destination Address</label>
+                                <Input
+                                    value={destAddress}
+                                    onChange={(e) =>
+                                        setDestAddress(e.target.value)
+                                    }
+                                ></Input>
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        depositEtherToPortal(
+                                            etherAmount,
+                                            destAddress
+                                        );
+                                    }}
+                                    disabled={!rollups}
+                                >
+                                    Deposit
+                                </Button>
+                            </Stack>
+                            <br />
+                        </TabPanel>
 
-          <TabPanel>
-          <Text fontSize="sm" color="grey">
-              Send ZCash transactions to have them executed on the rollup
-            </Text>
-            <Stack>
-              <label>Transaction Hex</label>
-              <Input value={transactionHex} height={100} onChange={(e) => setTransactionHex(e.target.value)}></Input>
-              <Button
-                colorScheme="blue"
-                size="sm"
-                onClick={() => {
-                  sendTransaction(transactionHex);
-                }}
-                disabled={!rollups}
-              >
-                Transact
-              </Button>
-            </Stack>
-          </TabPanel>
+                        <TabPanel>
+                            <Text fontSize="sm" color="grey">
+                                Send ZCash transactions to have them executed on
+                                the rollup
+                            </Text>
+                            <Stack>
+                                <label>Transaction Hex</label>
+                                <Input
+                                    value={transactionHex}
+                                    height={100}
+                                    onChange={(e) =>
+                                        setTransactionHex(e.target.value)
+                                    }
+                                ></Input>
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        sendTransaction(transactionHex);
+                                    }}
+                                    disabled={!rollups}
+                                >
+                                    Transact
+                                </Button>
+                            </Stack>
+                        </TabPanel>
 
-          <TabPanel>
-            <Accordion defaultIndex={[0]} allowMultiple>
-              <Text fontSize="sm" color="grey">
-                Withdraw by sending to the Mt Doom address t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs. After the withdraw request, the user has to execute a voucher to transfer assets from CarteZcash to their account.
-              </Text>
-              <br />
-              {!dappRelayedAddress &&
-                <div>
-                  Let the dApp know its address! <br />
-                  <Button
-                    size="sm"
-                    onClick={() => sendAddress()}
-                    disabled={!rollups}
-                  >
-                    Relay Address
-                  </Button>
-                  <br />
-                  <br />
-                </div>
-              }
-              {dappRelayedAddress && <Vouchers dappAddress={propos.dappAddress} />}
-            </Accordion>
-          </TabPanel>
-        </TabPanels>
-      </Box>
-    </Tabs>
-    //</div>
-  );
+                        <TabPanel>
+                            <Accordion defaultIndex={[0]} allowMultiple>
+                                <Text fontSize="sm" color="grey">
+                                    Withdraw by sending to the Mt Doom address
+                                    t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs. After
+                                    the withdraw request, the user has to
+                                    execute a voucher to transfer assets from
+                                    CarteZcash to their account.
+                                </Text>
+                                <br />
+                                {!dappRelayedAddress && (
+                                    <div>
+                                        Let the dApp know its address! <br />
+                                        <Button
+                                            size="sm"
+                                            onClick={() => sendAddress()}
+                                            disabled={!rollups}
+                                        >
+                                            Relay Address
+                                        </Button>
+                                        <br />
+                                        <br />
+                                    </div>
+                                )}
+                                {dappRelayedAddress && (
+                                    <Vouchers
+                                        dappAddress={propos.dappAddress}
+                                    />
+                                )}
+                            </Accordion>
+                        </TabPanel>
+                    </TabPanels>
+                </Box>
+            </Tabs>
+        </Card>
+    );
 };
