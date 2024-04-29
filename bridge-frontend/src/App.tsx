@@ -12,7 +12,7 @@
 
 import { FC } from "react";
 import injectedModule from "@web3-onboard/injected-wallets";
-import { init } from "@web3-onboard/react";
+import { init, useConnectWallet } from "@web3-onboard/react";
 import { useState } from "react";
 
 import { GraphQLProvider } from "./GraphQL";
@@ -20,16 +20,34 @@ import { Transfers } from "./Transfers";
 import { Network } from "./Network";
 import configFile from "./config.json";
 import "./App.css";
-import {Input, Box, InputGroup, InputLeftAddon, Stack, SimpleGrid} from "@chakra-ui/react"
+import {
+    Input,
+    Box,
+    InputGroup,
+    InputLeftAddon,
+    Stack,
+    SimpleGrid,
+    useColorMode,
+    Button,
+    Heading,
+    Text,
+    Image,
+    extendTheme,
+} from "@chakra-ui/react";
 import banner from "./banner.png";
-
+import Header from "./Header";
 
 const config: any = configFile;
 
 const injected: any = injectedModule();
 init({
     wallets: [injected],
-    chains: Object.entries(config).map(([k, v]: [string, any], i) => ({id: k, token: v.token, label: v.label, rpcUrl: v.rpcUrl})),
+    chains: Object.entries(config).map(([k, v]: [string, any], i) => ({
+        id: k,
+        token: v.token,
+        label: v.label,
+        rpcUrl: v.rpcUrl,
+    })),
     appMetadata: {
         name: "Cartesi Rollups Test DApp",
         icon: "<svg><svg/>",
@@ -43,37 +61,36 @@ init({
 const App: FC = () => {
     const [dappAddress, setDappAddress] = useState<string>("0x47432A4070539BeF308B24a7AAE2940b801d0681");
 
-    return (
-        <SimpleGrid columns={1} marginLeft={'25%'} marginRight={'25%'}>  
-        <img src={banner} alt="Banner" />
-        <Network />
-        <GraphQLProvider>
-            <Stack>
-                <Box alignItems='baseline' marginLeft='2' mt='0'>
-                    
-                <InputGroup size='xs'>
-                <InputLeftAddon>
-                    Dapp Address
-                </InputLeftAddon> 
-                <Input 
-                    width='auto'
-                    size='xs'
-                    className="address-textbox"
-                    type="text"
-                    value={dappAddress}
-                    onChange={(e) => setDappAddress(e.target.value)}
-                />
-                </ InputGroup >
-                <br /><br />
-                </Box>
-            </Stack>
+    const [{ wallet, connecting }, connect] = useConnectWallet();
 
-                <br />
-                    <br /> <br />
+    return (
+        <>
+            <Header dappAddress={dappAddress} setDappAddress={setDappAddress} />
+            <SimpleGrid columns={1} marginX={"30%"} alignContent={"center"}>
+                {!wallet && (
+                    <Box mt="28px" alignContent="center">
+                        <Stack>
+                            <Heading>CarteZcash Bridge</Heading>
+                            <Text>
+                                Connect a wallet to deposit or withdraw Eth from
+                                the rollup
+                            </Text>
+                            <Image src={banner} alt="Banner" />
+                            <Button
+                                onClick={() => connect()}
+                                marginY={"100px"}
+                                disabled={connecting}
+                            >
+                                {connecting ? "Connecting" : "Connect"}
+                            </Button>
+                        </Stack>
+                    </Box>
+                )}
+                <GraphQLProvider>
                     <Transfers dappAddress={dappAddress} />
-                    <br /> <br />
-            </GraphQLProvider>
-        </SimpleGrid>
+                </GraphQLProvider>
+            </SimpleGrid>
+        </>
     );
 };
 
