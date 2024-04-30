@@ -17,22 +17,16 @@ import { useState } from "react";
 
 import { GraphQLProvider } from "./GraphQL";
 import { Transfers } from "./Transfers";
-import { Network } from "./Network";
 import configFile from "./config.json";
 import "./App.css";
 import {
-    Input,
     Box,
-    InputGroup,
-    InputLeftAddon,
     Stack,
     SimpleGrid,
-    useColorMode,
     Button,
     Heading,
     Text,
     Image,
-    extendTheme,
 } from "@chakra-ui/react";
 import banner from "./banner.png";
 import Header from "./Header";

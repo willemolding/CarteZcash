@@ -46,7 +46,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     const provider = new ethers.providers.Web3Provider(
         connectedWallet.provider
     );
-    const { colorMode, toggleColorMode } = useColorMode();
+    const { colorMode } = useColorMode();
 
     const sendAddress = async () => {
         if (rollups) {

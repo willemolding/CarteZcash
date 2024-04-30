@@ -7,7 +7,6 @@ import {
     IconButton,
     Button,
     useColorModeValue,
-    useDisclosure,
     useColorMode,
     Select,
     Menu,
@@ -27,8 +26,8 @@ const config: any = configFile;
 export default function Header(props: any) {
     const { colorMode, toggleColorMode } = useColorMode();
 
-    const [{ wallet, connecting }, connect, disconnect] = useConnectWallet();
-    const [{ chains, connectedChain, settingChain }, setChain] = useSetChain();
+    const [{ wallet }, connect, disconnect] = useConnectWallet();
+    const [{ chains, connectedChain }, setChain] = useSetChain();
 
     return (
         <Box>
