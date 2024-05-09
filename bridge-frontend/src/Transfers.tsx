@@ -30,6 +30,7 @@ import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
 import { EtherInput } from "./components/EtherInput";
 import { ZCashTaddressInput } from "./components/ZCashTaddressInput";
+import bs58 from "bs58";
 
 interface IInputPropos {
   dappAddress: string;
@@ -55,7 +56,9 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
   const depositEtherToPortal = async (amount: string, destAddress: string) => {
     try {
       if (rollups && provider) {
-        const data = ethers.utils.arrayify(destAddress);
+        // parse the t-address into bytes we can send to the contract
+        let address_bytes = bs58.decode(destAddress);
+        const data = ethers.utils.arrayify(address_bytes);
         const txOverrides = {
           value: ethers.utils.parseEther(amount),
         };
@@ -122,7 +125,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
           >
             Deposit
           </Tab>
-          <Tab
+          {/* <Tab
             margin={1}
             padding={2}
             borderRadius={8}
@@ -132,7 +135,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
             color={colorMode === "light" ? "black" : "white"}
           >
             Transact
-          </Tab>
+          </Tab> */}
           <Tab
             margin={1}
             padding={2}
@@ -176,7 +179,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
               <br />
             </TabPanel>
 
-            <TabPanel>
+            {/* <TabPanel> Skip this for now. It was part of the earlier demo but now we can sent transactions directly from the wallet
               <Text fontSize="sm" color="grey">
                 Send ZCash transactions to have them executed on the rollup
               </Text>
@@ -197,7 +200,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                   Transact
                 </Button>
               </Stack>
-            </TabPanel>
+            </TabPanel> */}
 
             <TabPanel>
               <Accordion defaultIndex={[0]} allowMultiple>
