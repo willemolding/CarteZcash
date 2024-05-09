@@ -50,6 +50,7 @@ export interface RollupsContracts {
     erc721PortalContract: ERC721Portal;
     erc1155SinglePortalContract: ERC1155SinglePortal;
     erc1155BatchPortalContract: ERC1155BatchPortal;
+    rollupExitAddress: string;
 }
 
 export const useRollups = (dAddress: string): RollupsContracts | undefined => {
@@ -139,6 +140,8 @@ export const useRollups = (dAddress: string): RollupsContracts | undefined => {
 
             const erc1155BatchPortalContract = ERC1155BatchPortal__factory.connect(erc1155BatchPortalAddress, signer);
 
+            const rollupExitAddress = config[chain.id].RollupExitAddress;
+
             return {
                 dappContract,
                 signer,
@@ -149,6 +152,7 @@ export const useRollups = (dAddress: string): RollupsContracts | undefined => {
                 erc721PortalContract,
                 erc1155SinglePortalContract,
                 erc1155BatchPortalContract,
+                rollupExitAddress
             };
         };
         if (connectedWallet?.provider && connectedChain) {

@@ -21,6 +21,7 @@
         "@web3-onboard/core": "^2.2.6",
         "@web3-onboard/injected-wallets": "^2.0.5",
         "@web3-onboard/react": "^2.1.5",
+        "bs58": "^5.0.0",
         "buffer": "^6.0.3",
         "cacheable-request": "^10.2.7",
         "ethers": "5.7.2",
