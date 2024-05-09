@@ -51,7 +51,13 @@ where
 
         // handle the additional calls as required by the dApp outputs
         for output in response.outputs.iter() {
-            tracing::info!("(mock) Sending output {:?}", output);
+            tracing::info!("Sending output {:?}", output);
+            let resp = client
+                .post(format!("{}/{}", host_uri, output.url_path()))
+                .json(&output)
+                .send()
+                .await;
+            tracing::info!("Output response: {:?}", resp);
         }
     }
 }

@@ -69,7 +69,14 @@ async fn main() -> Result<(), anyhow::Error> {
     {
         let grpc_addr = env::var("GRPC_SERVER_URL")?;
         let state_read_service = Buffer::new(state_read_service.boxed(), 30);
-        let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl { state_read_service });
+        let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl::new( 
+            state_read_service,
+            env::var("ETH_RPC_URL")?,
+            env::var("ETH_CHAIN_ID").map(|s| s.parse::<u64>().unwrap())?,
+            env::var("SIGNER_PK")?,
+            env::var("INPUTBOX_CONTRACT_ADDRESS")?,
+            env::var("DAPP_ADDRESS")?
+        ));
         let addr = grpc_addr.parse()?;
         let grpc_server = tonic::transport::Server::builder()
             .trace_fn(|_| tracing::info_span!("cartezcash-grpc"))
@@ -102,6 +109,7 @@ struct CarteZcashApp {
         Buffer<BoxService<Request, service::Response, Box<dyn Error + Sync + Send>>, Request>,
     #[cfg(feature = "lightwalletd")]
     state_service: StateService,
+    dapp_address: Option<ethereum_types::Address>,
 }
 
 impl CarteZcashApp {
@@ -121,6 +129,7 @@ impl CarteZcashApp {
             cartezcash: Buffer::new(BoxService::new(CarteZcashService::new(tinycash)), 10),
             #[cfg(feature = "lightwalletd")]
             state_service: state_service,
+            dapp_address: None,
         }
     }
 }
@@ -137,12 +146,20 @@ impl Service<RollAppRequest> for CarteZcashApp {
     fn call(&mut self, req: RollAppRequest) -> Self::Future {
         match req {
             RollAppRequest::AdvanceState { metadata, payload } => {
+                // if the payload is 20 bytes, it is the dapp address. Handle it then exit early
+                if payload.len() == 20 {
+                    let dapp_address = ethereum_types::Address::from_slice(&payload);
+                    tracing::info!("Received dapp address: {:?}", dapp_address);
+                    self.dapp_address = Some(dapp_address);
+                    return async { Ok(tower_cartesi::Response::empty_accept()) }.boxed();
+                }
+
                 let czk_request = Request::try_from((metadata, payload)).unwrap();
                 let mut cartezcash_service = self.cartezcash.clone();
 
                 #[cfg(feature = "lightwalletd")]
                 let mut state_service = self.state_service.clone();
-
+                let dapp_address = self.dapp_address.clone();
                 async move {
                     let response = cartezcash_service
                         .ready()
@@ -165,10 +182,14 @@ impl Service<RollAppRequest> for CarteZcashApp {
                             ))
                             .await?;
                     }
-                    let resp = tower_cartesi::Response::empty_accept();
-                    for withdrawal in response.withdrawals {
-                        // TODO: Build vouchers and add to response
-                        tracing::info!("Withdrawal: {:?}", withdrawal);
+                    let mut resp = tower_cartesi::Response::empty_accept();
+                    for (recipient, amount) in response.withdrawals {
+                        tracing::info!("Withdrawal: to {:?} with amount: {:?}", recipient, amount);
+                        if let Some(dapp_address) = dapp_address {
+                            resp.add_voucher(dapp_address, &encode_withdraw_call(recipient, amount));
+                        } else {
+                            tracing::error!("Withdrawal made before dapp address set. Funds are lost.");
+                        }
                     }
                     Ok(resp)
                 }
@@ -219,4 +240,13 @@ where
         .await?;
 
     Ok(())
+}
+
+fn encode_withdraw_call(recipient: ethereum_types::Address, amount: ethereum_types::U256) -> Vec<u8> {
+    let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
+    let encoded_params = ethabi::encode(&[ethabi::Token::Address(recipient), ethabi::Token::Uint(amount)]);
+    let mut encoded = Vec::new();
+    encoded.extend_from_slice(&function.selector().as_slice());
+    encoded.extend_from_slice(&encoded_params);
+    encoded
 }

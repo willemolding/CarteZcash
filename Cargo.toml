@@ -34,6 +34,8 @@ zebra-state = { workspace = true, optional = true }
 tiny-cash = { path = "tiny-cash" }
 cartezcash-lightwalletd = { path = "cartezcash-lightwalletd", optional = true }
 tower-cartesi = { path = "tower-cartesi" }
+ethabi = "18.0.0"
+alloy-json-abi = "0.7.2"
 
 [features]
 default = ["listen-http"]

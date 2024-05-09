@@ -1,4 +1,6 @@
 set positional-arguments
+set dotenv-load
+set dotenv-path := ".env.local"
 
 build:
     sunodo build
@@ -7,10 +9,10 @@ run:
     sunodo run --epoch-duration=10
 
 run-local:
-    ROLLUP_HTTP_SERVER_URL=http://127.0.0.1:8080/host-runner GRPC_SERVER_URL="[::1]:50051" cargo run --features lightwalletd
+     cargo run --features lightwalletd
 
 run-fullnode:
-    ROLLUP_HTTP_SERVER_URL=https://cartezcash.fly.dev/graphql GRPC_SERVER_URL="[::1]:50051" cargo run --no-default-features --features listen-graphql,lightwalletd 
+    cargo run --no-default-features --features listen-graphql,lightwalletd 
 
 sunodo-nobackend:
     sunodo run --no-backend
@@ -33,6 +35,9 @@ run-fullnode-docker:
 
 execute_voucher:
     cast send 0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e "executeVoucher(address, bytes, struct Proof _proof)"
+
+send_address:
+    sunodo send dapp-address --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 ##### wallet related commands
 

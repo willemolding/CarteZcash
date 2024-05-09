@@ -28,6 +28,31 @@ abigen!(
 #[derive(Clone)]
 pub struct CompactTxStreamerImpl<R> {
     pub state_read_service: R, //Buffer<zebra_state::ReadStateService, zebra_state::ReadRequest>,
+    pub eth_rpc_url: String,
+    pub eth_chain_id: u64,
+    pub signer_pk: String,
+    pub inputbox_contract_address: String,
+    pub dapp_address: String,
+}
+
+impl<R> CompactTxStreamerImpl<R> {
+    pub fn new(
+        state_read_service: R,
+        eth_rpc_url: String,
+        eth_chain_id: u64,
+        signer_pk: String,
+        inputbox_contract_address: String,
+        dapp_address: String,
+    ) -> Self {
+        Self {
+            state_read_service,
+            eth_rpc_url,
+            eth_chain_id,
+            signer_pk,
+            inputbox_contract_address,
+            dapp_address,
+        }
+    }
 }
 
 #[tonic::async_trait]
@@ -55,26 +80,23 @@ where
         &self,
         request: tonic::Request<RawTransaction>,
     ) -> std::result::Result<tonic::Response<SendResponse>, tonic::Status> {
-        tracing::debug!("send_transaction called. Fowarding to InputBox contract");
+        tracing::info!("send_transaction called. Fowarding to InputBox contract");
 
-        let provider = Provider::<Http>::try_from("http://127.0.0.1:8545").unwrap();
-        let wallet: LocalWallet =
-            "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-                .parse()
-                .unwrap();
+        let provider = Provider::<Http>::try_from(self.eth_rpc_url.clone()).unwrap();
+        let wallet: LocalWallet = self.signer_pk.parse().unwrap();
         let client = std::sync::Arc::new(SignerMiddleware::new(
             provider,
-            wallet.with_chain_id(31337_u64),
+            wallet.with_chain_id(self.eth_chain_id),
         ));
 
         // Instantiate the contract
         let contract = IInputBox::new(
-            Address::from_str("0x59b22D57D4f067708AB0c00552767405926dc768").unwrap(),
+            Address::from_str(&self.inputbox_contract_address).unwrap(),
             client,
         );
         contract
             .add_input(
-                Address::from_str("0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C").unwrap(),
+                Address::from_str(&self.dapp_address).unwrap(),
                 Bytes::from(request.get_ref().data.clone()),
             )
             .send()
