@@ -91,23 +91,3 @@ The remainder of the fields should follow the spec as described in the lightwall
     "zcashdSubversion": "N/A"
 }
 ```
-
-### Network Constants
-
-#### Address Encoding
-
-Zcash uses different human readable prefix (HRP) strings to ensure encoded keys cannot be re-used between mainnet and testnet. CarteZcash extends this so that keys cannot be used between different instances of CarteZcash or other Zcash forks.
-
-Relevant to CarteZcash are:
-
-
-- The human readable prefixes for transparent address types
-    - B58_PUBKEY_ADDRESS_PREFIX
-    - B58_SCRIPT_ADDRESS_PREFIX
-- ones for orchard?
-
-#### Sighash
-
-? does this need anything?
-
-https://github.com/zcash/librustzcash/blob/main/components/zcash_protocol/src/constants/mainnet.rs
