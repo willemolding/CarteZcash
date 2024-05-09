@@ -206,7 +206,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
               <Accordion defaultIndex={[0]} allowMultiple>
                 <Text fontSize="large" color="grey">
                   To withdraw send funds to the exit address{" "}
-                  {process.env.REACT_APP_EXIT_ADDRESS} on the L2 then execute
+                  {rollups?.rollupExitAddress} on the L2 then execute
                   the resulting voucher here
                 </Text>
                 <br />

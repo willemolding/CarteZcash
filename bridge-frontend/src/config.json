@@ -11,7 +11,9 @@
         "Erc20PortalAddress":"0x9C21AEb2093C32DDbC53eEF24B873BDCd1aDa1DB",
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
-        "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa"
+        "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
+        "RollupExitAddress": "t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs",
+        "DAppAddress": "0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87"
     },
     "0xaa36a7":{
         "token": "SepETH",
@@ -25,6 +27,8 @@
         "Erc20PortalAddress":"0x9C21AEb2093C32DDbC53eEF24B873BDCd1aDa1DB",
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
-        "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa"
+        "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
+        "RollupExitAddress": "t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs",
+        "DAppAddress": "0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87"
     }
 }
