@@ -24,17 +24,12 @@ import {
     useColorMode,
 } from "@chakra-ui/react";
 import { Button, Box } from "@chakra-ui/react";
-import {
-    NumberInput,
-    NumberInputField,
-    NumberInputStepper,
-    NumberIncrementStepper,
-    NumberDecrementStepper,
-} from "@chakra-ui/react";
 import { Input, Stack } from "@chakra-ui/react";
 import { Accordion } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
+import { EtherInput } from "./components/EtherInput";
+import { ZCashTaddressInput } from "./components/ZCashTaddressInput";
 
 interface IInputPropos {
     dappAddress: string;
@@ -62,14 +57,14 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     };
 
     const depositEtherToPortal = async (
-        amount: number,
+        amount: string,
         destAddress: string
     ) => {
         try {
             if (rollups && provider) {
                 const data = ethers.utils.arrayify(destAddress);
                 const txOverrides = {
-                    value: ethers.utils.parseEther(`${amount}`),
+                    value: ethers.utils.parseEther(amount),
                 };
                 console.log("Ether to deposit: ", txOverrides);
 
@@ -99,8 +94,8 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
 
     const [dappRelayedAddress, setDappRelayedAddress] =
         useState<boolean>(false);
-    const [etherAmount, setEtherAmount] = useState<number>(0);
-    const [destAddress, setDestAddress] = useState<string>("");
+    const [etherAmount, setEtherAmount] = useState<string>("");
+    const [destAddress, setDestAddress] = useState<string>("t1");
 
     const [transactionHex, setTransactionHex] = useState<string>("");
 
@@ -168,28 +163,15 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                             <br />
                             <Stack>
                                 <label>Amount (Eth)</label>
-
-                                <NumberInput
-                                    defaultValue={0}
-                                    min={0}
-                                    onChange={(value) =>
-                                        setEtherAmount(Number(value))
+                                <EtherInput onChange={(value: string) =>
+                                        setEtherAmount(value)
                                     }
-                                    value={etherAmount}
-                                >
-                                    <NumberInputField />
-                                    <NumberInputStepper>
-                                        <NumberIncrementStepper />
-                                        <NumberDecrementStepper />
-                                    </NumberInputStepper>
-                                </NumberInput>
-                                <label>Destination Address</label>
-                                <Input
-                                    value={destAddress}
-                                    onChange={(e) =>
-                                        setDestAddress(e.target.value)
-                                    }
-                                ></Input>
+                                    value={etherAmount}/>
+                                <label>Destination Zcash Address</label>
+                                <ZCashTaddressInput value={destAddress}
+                                    onChange={(e: string) =>
+                                        setDestAddress(e)
+                                    }/>
                                 <Button
                                     size="sm"
                                     onClick={() => {
