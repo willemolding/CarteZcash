@@ -54,9 +54,17 @@ init({
 
 const App: FC = () => {
   const [{ connectedChain }] = useSetChain();
-  const [dappAddress, setDappAddress] = useState<string>(config["0x7a69"].DAppAddress);
 
   const [{ wallet, connecting }, connect] = useConnectWallet();
+  const [dappAddress, setDappAddress] = useState<string>("");
+
+  useEffect(() => {
+    if (connectedChain) {
+      setDappAddress(config[connectedChain.id].DAppAddress);
+    }
+  }, [connectedChain]);
+
+
 
   useEffect(() => {
     if (connectedChain) {
