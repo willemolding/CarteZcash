@@ -28,7 +28,7 @@ impl From<tiny_cash::service::Response> for Response {
                 .burns
                 .iter()
                 .map(|(amount, memo)| {
-                    let addres_bytes = hex::decode(&memo.0[0..40])  // expect unicode hex no 0x prefix (inefficient). skip the version byte at the start
+                    let addres_bytes = hex::decode(&memo.0[0..40]) // expect unicode hex no 0x prefix (inefficient). skip the version byte at the start
                         .expect("failed to decode memo");
 
                     (

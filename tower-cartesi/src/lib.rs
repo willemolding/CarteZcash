@@ -61,7 +61,7 @@ where
                         .await;
                     tracing::info!("Output response: {:?}", resp);
                 }
-            },
+            }
             Err(e) => {
                 tracing::error!("{:?}", e);
                 response = Response::empty_reject();
