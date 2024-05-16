@@ -5,6 +5,7 @@
         "rpcUrl": "http://localhost:8545",
         "graphqlAPIURL" : "http://localhost:8080",
         "inspectAPIURL":"http://localhost:8080",
+        "RollupExitAddress": "u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g",
         "DAppRelayAddress":"0xF5DE34d6BbC0446E2a45719E718efEbaaE179daE",
         "InputBoxAddress":"0x59b22D57D4f067708AB0c00552767405926dc768",
         "EtherPortalAddress":"0xFfdbe43d4c855BF7e0f105c400A50857f53AB044",
@@ -12,8 +13,7 @@
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
         "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
-        "RollupExitAddress": "t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs",
-        "DAppAddress": "0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87"
+        "DAppAddress": "0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e"
     },
     "0xaa36a7":{
         "token": "SepETH",
@@ -21,6 +21,7 @@
         "rpcUrl": "https://eth-goerli.g.alchemy.com/v2/demo",
         "graphqlAPIURL" : "https://cartezcash.fly.dev",
         "inspectAPIURL":"https://cartezcash.fly.dev",
+        "RollupExitAddress": "u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g",
         "DAppRelayAddress":"0xF5DE34d6BbC0446E2a45719E718efEbaaE179daE",
         "InputBoxAddress":"0x59b22D57D4f067708AB0c00552767405926dc768",
         "EtherPortalAddress":"0xFfdbe43d4c855BF7e0f105c400A50857f53AB044",
@@ -28,7 +29,6 @@
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
         "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
-        "RollupExitAddress": "t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs",
-        "DAppAddress": "0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87"
+        "DAppAddress": "0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e"
     }
 }

@@ -15,7 +15,7 @@ run-fullnode:
     cargo run --no-default-features --features listen-graphql,lightwalletd 
 
 sunodo-nobackend:
-    sunodo run --no-backend
+    sunodo run --no-backend --epoch-duration=10
 
 ##### Docker
 
@@ -36,7 +36,7 @@ run-fullnode-docker:
 execute_voucher:
     cast send 0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e "executeVoucher(address, bytes, struct Proof _proof)"
 
-send_address:
+send-address:
     sunodo send dapp-address --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 ##### wallet related commands

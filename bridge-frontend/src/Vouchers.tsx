@@ -50,6 +50,7 @@ export const Vouchers: React.FC<IVoucherPropos> = (propos) => {
     const rollups = useRollups(propos.dappAddress);
 
     const getProof = async (voucher: Voucher) => {
+        console.log("getProof called with voucher: ",voucher);
         setVoucherToFetch([voucher.index,voucher.input.index]);
         reexecuteVoucherQuery({ requestPolicy: 'network-only' });
     };
@@ -59,6 +60,7 @@ export const Vouchers: React.FC<IVoucherPropos> = (propos) => {
 
             const newVoucherToExecute = {...voucher};
             try {
+                console.log("calling execute voucher with voucher: ",voucher);
                 const tx = await rollups.dappContract.executeVoucher( voucher.destination,voucher.payload,voucher.proof);
                 const receipt = await tx.wait();
                 newVoucherToExecute.msg = `voucher executed! (tx="${tx.hash}")`;
@@ -219,7 +221,6 @@ export const Vouchers: React.FC<IVoucherPropos> = (propos) => {
                     {/* <td>{voucherToExecute.proof}</td> */}
                     {/* <Td>{voucherToExecute.input.payload}</Td> */} 
                     {/* <Td>{voucherToExecute.msg}</Td> */}
-                    <br /> <br />
                 </Tr>
             </Tbody>
         </Table> : <Text></Text>}
@@ -247,7 +248,7 @@ export const Vouchers: React.FC<IVoucherPropos> = (propos) => {
                             <Td>{n.index}</Td>
                             <Td>{n.destination}</Td> */}
                             <Td>
-                                <Button size='sm' onClick={() => getProof(n)}>Info</Button>
+                                <Button size='sm' onClick={() => getProof(n)}>Show Detail</Button>
                             </Td>
                             {/* <td>{n.input.payload}</td> */}
                             <Td color={'grey'}>{n.payload}</Td>

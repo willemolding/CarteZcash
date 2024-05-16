@@ -43,9 +43,9 @@ init({
     rpcUrl: v.rpcUrl,
   })),
   appMetadata: {
-    name: "Cartesi Rollups Test DApp",
+    name: "CarteZcash Testnet",
     icon: "<svg><svg/>",
-    description: "Demo app for Cartesi Rollups",
+    description: "Cartesi shielded pool using ZCash",
     recommendedInjectedWallets: [
       { name: "MetaMask", url: "https://metamask.io" },
     ],
@@ -54,7 +54,7 @@ init({
 
 const App: FC = () => {
   const [{ connectedChain }] = useSetChain();
-  const [dappAddress, setDappAddress] = useState<string>("unknown");
+  const [dappAddress, setDappAddress] = useState<string>(config["0x7a69"].DAppAddress);
 
   const [{ wallet, connecting }, connect] = useConnectWallet();
 
