@@ -16,6 +16,13 @@ impl Response {
         }
     }
 
+    pub fn empty_reject() -> Self {
+        Self {
+            status: Status::Reject,
+            outputs: Vec::new(),
+        }
+    }
+
     pub fn add_voucher(&mut self, destination: ethereum_types::Address, payload: &[u8]) {
         self.outputs.push(Output::Voucher {
             destination,

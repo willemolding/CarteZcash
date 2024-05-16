@@ -154,13 +154,14 @@ impl Service<RollAppRequest> for CarteZcashApp {
                     return async { Ok(tower_cartesi::Response::empty_accept()) }.boxed();
                 }
 
-                let czk_request = Request::try_from((metadata, payload)).unwrap();
                 let mut cartezcash_service = self.cartezcash.clone();
 
                 #[cfg(feature = "lightwalletd")]
                 let mut state_service = self.state_service.clone();
                 let dapp_address = self.dapp_address.clone();
                 async move {
+                    let czk_request = Request::try_from((metadata, payload))?;
+
                     let response = cartezcash_service
                         .ready()
                         .await?
