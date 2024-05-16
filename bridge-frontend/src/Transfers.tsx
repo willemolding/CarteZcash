@@ -30,7 +30,7 @@ import { Accordion } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
 import { EtherInput } from "./components/EtherInput";
-import bs58 from "bs58";
+import { decode as bs58decode } from '@web3pack/base58-check';
 
 interface IInputPropos {
   dappAddress: string;
@@ -47,7 +47,7 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     try {
       if (rollups && provider) {
         // parse the t-address into bytes we can send to the contract
-        let address_bytes = bs58.decode(destAddress);
+        let address_bytes = bs58decode(destAddress).subarray(2); // skip the first two bytes as they carry no information
         const data = ethers.utils.arrayify(address_bytes);
         const txOverrides = {
           value: ethers.utils.parseEther(amount),

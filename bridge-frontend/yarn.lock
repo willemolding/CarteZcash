@@ -7769,6 +7769,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@web3pack/base-x@npm:^1.0.1":
+  version: 1.0.2
+  resolution: "@web3pack/base-x@npm:1.0.2"
+  checksum: 10c0/ec7dbe9baa4a522e12c7ae3c80d047f843f1c37806be00897bf4e7301120cc69ebe569f9cf9941394bca22977634780d6d389703683c2e61a328037d5975de6c
+  languageName: node
+  linkType: hard
+
+"@web3pack/base58-check@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@web3pack/base58-check@npm:1.0.3"
+  dependencies:
+    "@web3pack/base-x": "npm:^1.0.1"
+    buffer: "npm:^6.0.3"
+    hash.js: "npm:^1.1.7"
+  checksum: 10c0/b0a25c6afcef9590aabe1d0a5fc4867188ca21947ecae249f3e2401610545c5d9f1748e3d027572b9472c316f78569ff23e681bce993f61ce3e477c572b0e801
+  languageName: node
+  linkType: hard
+
 "@webassemblyjs/ast@npm:1.11.6, @webassemblyjs/ast@npm:^1.11.5":
   version: 1.11.6
   resolution: "@webassemblyjs/ast@npm:1.11.6"
@@ -9474,6 +9492,7 @@ __metadata:
     "@web3-onboard/core": "npm:^2.2.6"
     "@web3-onboard/injected-wallets": "npm:^2.0.5"
     "@web3-onboard/react": "npm:^2.1.5"
+    "@web3pack/base58-check": "npm:^1.0.3"
     assert: "npm:^2.0.0"
     bs58: "npm:^5.0.0"
     buffer: "npm:^6.0.3"
