@@ -22,6 +22,7 @@ import {
   Tab,
   Card,
   useColorMode,
+  Input,
 } from "@chakra-ui/react";
 import { Button, Box } from "@chakra-ui/react";
 import { Stack } from "@chakra-ui/react";
@@ -29,8 +30,7 @@ import { Accordion } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
 import { EtherInput } from "./components/EtherInput";
-import { ZCashTaddressInput } from "./components/ZCashTaddressInput";
-import bs58 from "bs58";
+import { decode as bs58decode } from '@web3pack/base58-check';
 
 interface IInputPropos {
   dappAddress: string;
@@ -43,15 +43,17 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
   const { colorMode } = useColorMode();
 
   const depositEtherToPortal = async (amount: string, destAddress: string) => {
+    console.log(`Depositing ${amount} to ${destAddress}`);
     try {
       if (rollups && provider) {
         // parse the t-address into bytes we can send to the contract
-        let address_bytes = bs58.decode(destAddress);
+        let address_bytes = bs58decode(destAddress).subarray(2); // skip the first two bytes as they carry no information
         const data = ethers.utils.arrayify(address_bytes);
         const txOverrides = {
           value: ethers.utils.parseEther(amount),
         };
         console.log("Ether to deposit: ", txOverrides);
+        console.log("Destination address: ", address_bytes);
 
         // const tx = await ...
         rollups.etherPortalContract.depositEther(
@@ -137,9 +139,9 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
                   value={etherAmount}
                 />
                 <label>Destination Zcash Address</label>
-                <ZCashTaddressInput
+                <Input
                   value={destAddress}
-                  onChange={(e: string) => setDestAddress(e)}
+                  onChange={(e) => setDestAddress(e.target.value)}
                 />
                 <Button
                   size="sm"

@@ -28,6 +28,7 @@ pub enum Error<E> {
 pub async fn listen_http<S>(service: &mut S, host_uri: &str) -> Result<(), Error<S::Error>>
 where
     S: Service<Request, Response = Response>,
+    S::Error: std::fmt::Debug,
 {
     let client = reqwest::Client::new();
 
@@ -47,17 +48,24 @@ where
         let request = Request::try_from(rollup_request)?;
 
         // let the dapp process the request
-        response = service.call(request).await.map_err(Error::ServiceError)?;
-
-        // handle the additional calls as required by the dApp outputs
-        for output in response.outputs.iter() {
-            tracing::info!("Sending output {:?}", output);
-            let resp = client
-                .post(format!("{}/{}", host_uri, output.url_path()))
-                .json(&output)
-                .send()
-                .await;
-            tracing::info!("Output response: {:?}", resp);
+        match service.call(request).await.map_err(Error::ServiceError) {
+            Ok(r) => {
+                response = r;
+                // handle the additional calls as required by the dApp outputs
+                for output in response.outputs.iter() {
+                    tracing::info!("Sending output {:?}", output);
+                    let resp = client
+                        .post(format!("{}/{}", host_uri, output.url_path()))
+                        .json(&output)
+                        .send()
+                        .await;
+                    tracing::info!("Output response: {:?}", resp);
+                }
+            }
+            Err(e) => {
+                tracing::error!("{:?}", e);
+                response = Response::empty_reject();
+            }
         }
     }
 }

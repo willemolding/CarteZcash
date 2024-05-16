@@ -69,13 +69,13 @@ async fn main() -> Result<(), anyhow::Error> {
     {
         let grpc_addr = env::var("GRPC_SERVER_URL")?;
         let state_read_service = Buffer::new(state_read_service.boxed(), 30);
-        let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl::new( 
+        let svc = CompactTxStreamerServer::new(CompactTxStreamerImpl::new(
             state_read_service,
             env::var("ETH_RPC_URL")?,
             env::var("ETH_CHAIN_ID").map(|s| s.parse::<u64>().unwrap())?,
             env::var("SIGNER_PK")?,
             env::var("INPUTBOX_CONTRACT_ADDRESS")?,
-            env::var("DAPP_ADDRESS")?
+            env::var("DAPP_ADDRESS")?,
         ));
         let addr = grpc_addr.parse()?;
         let grpc_server = tonic::transport::Server::builder()
@@ -154,13 +154,14 @@ impl Service<RollAppRequest> for CarteZcashApp {
                     return async { Ok(tower_cartesi::Response::empty_accept()) }.boxed();
                 }
 
-                let czk_request = Request::try_from((metadata, payload)).unwrap();
                 let mut cartezcash_service = self.cartezcash.clone();
 
                 #[cfg(feature = "lightwalletd")]
                 let mut state_service = self.state_service.clone();
                 let dapp_address = self.dapp_address.clone();
                 async move {
+                    let czk_request = Request::try_from((metadata, payload))?;
+
                     let response = cartezcash_service
                         .ready()
                         .await?
@@ -186,9 +187,14 @@ impl Service<RollAppRequest> for CarteZcashApp {
                     for (recipient, amount) in response.withdrawals {
                         tracing::info!("Withdrawal: to {:?} with amount: {:?}", recipient, amount);
                         if let Some(dapp_address) = dapp_address {
-                            resp.add_voucher(dapp_address, &encode_withdraw_call(recipient, amount));
+                            resp.add_voucher(
+                                dapp_address,
+                                &encode_withdraw_call(recipient, amount),
+                            );
                         } else {
-                            tracing::error!("Withdrawal made before dapp address set. Funds are lost.");
+                            tracing::error!(
+                                "Withdrawal made before dapp address set. Funds are lost."
+                            );
                         }
                     }
                     Ok(resp)
@@ -242,9 +248,15 @@ where
     Ok(())
 }
 
-fn encode_withdraw_call(recipient: ethereum_types::Address, amount: ethereum_types::U256) -> Vec<u8> {
+fn encode_withdraw_call(
+    recipient: ethereum_types::Address,
+    amount: ethereum_types::U256,
+) -> Vec<u8> {
     let function = alloy_json_abi::Function::parse("withdrawEther(address,uint256)").unwrap();
-    let encoded_params = ethabi::encode(&[ethabi::Token::Address(recipient), ethabi::Token::Uint(amount)]);
+    let encoded_params = ethabi::encode(&[
+        ethabi::Token::Address(recipient),
+        ethabi::Token::Uint(amount),
+    ]);
     let mut encoded = Vec::new();
     encoded.extend_from_slice(&function.selector().as_slice());
     encoded.extend_from_slice(&encoded_params);
