@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Input } from "@chakra-ui/react";
 
-export const T_ADDRESS_REGEX = /^t1[a-zA-Z0-9]{1,33}$/;
+export const T_ADDRESS_REGEX = /^t1[a-zA-Z0-9]{0,33}$/;
 
 /**
  * Input for ETH amount with USD conversion.

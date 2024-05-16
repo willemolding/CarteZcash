@@ -45,7 +45,7 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
 
                 let dest_t_address = Address::from_pub_key_hash(
                     tiny_cash::parameters::Network::Mainnet,
-                    payload[52..].try_into().unwrap(),
+                    payload[52..].try_into()?,
                 );
                 let amount = Amount::try_from(value.as_u64())?; // FIX: This is going to panic if too much eth is sent
 
