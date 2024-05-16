@@ -71,6 +71,16 @@ pub enum Output {
     },
 }
 
+impl Output {
+    pub fn url_path(&self) -> &'static str {
+        match self {
+            Output::Notice { .. } => "notice",
+            Output::Report { .. } => "report",
+            Output::Voucher { .. } => "voucher",
+        }
+    }
+}
+
 fn hexify<S>(data: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,

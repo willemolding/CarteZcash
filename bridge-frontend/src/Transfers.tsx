@@ -24,7 +24,7 @@ import {
   useColorMode,
 } from "@chakra-ui/react";
 import { Button, Box } from "@chakra-ui/react";
-import { Input, Stack } from "@chakra-ui/react";
+import { Stack } from "@chakra-ui/react";
 import { Accordion } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { Vouchers } from "./Vouchers";
@@ -41,17 +41,6 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
   const [connectedWallet] = useWallets();
   const provider = new ethers.providers.Web3Provider(connectedWallet.provider);
   const { colorMode } = useColorMode();
-
-  const sendAddress = async () => {
-    if (rollups) {
-      try {
-        await rollups.relayContract.relayDAppAddress(propos.dappAddress);
-        // setDappRelayedAddress(true);
-      } catch (e) {
-        console.log(`${e}`);
-      }
-    }
-  };
 
   const depositEtherToPortal = async (amount: string, destAddress: string) => {
     try {
@@ -76,22 +65,8 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     }
   };
 
-  const sendTransaction = async (transactionHex: string) => {
-    try {
-      if (rollups && provider) {
-        const input = ethers.utils.arrayify(transactionHex);
-
-        rollups.inputContract.addInput(propos.dappAddress, input);
-      }
-    } catch (e) {
-      console.log(`${e}`);
-    }
-  };
-
   const [etherAmount, setEtherAmount] = useState<string>("");
   const [destAddress, setDestAddress] = useState<string>("t1");
-
-  const [transactionHex, setTransactionHex] = useState<string>("");
 
   return (
     <Card

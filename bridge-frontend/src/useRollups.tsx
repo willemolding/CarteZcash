@@ -121,6 +121,7 @@ export const useRollups = (dAddress: string): RollupsContracts | undefined => {
                 alert(`No erc1155 batch portal address defined for chain ${chain.id}`);
             }
             // dapp contract 
+            console.log("dappAddress", dappAddress);
             const dappContract = CartesiDApp__factory.connect(dappAddress, signer);
 
             // relay contract
