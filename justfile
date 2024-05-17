@@ -3,10 +3,10 @@ set dotenv-load
 set dotenv-path := ".env.local"
 
 build:
-    sunodo build
+    cartesi build
 
 run:
-    sunodo run --epoch-duration=10
+    cartesi run --epoch-duration=10
 
 run-local:
      cargo run --features lightwalletd
@@ -14,8 +14,8 @@ run-local:
 run-fullnode:
     cargo run --no-default-features --features listen-graphql,lightwalletd 
 
-sunodo-nobackend:
-    sunodo run --no-backend --epoch-duration=10
+run-nobackend:
+    cartesi run --no-backend --epoch-duration=10
 
 ##### Docker
 
@@ -25,19 +25,19 @@ build-fullnode-docker:
 run-fullnode-docker:
     docker run -it --rm -p 50051:50051 -e ROLLUP_HTTP_SERVER_URL=http://host.docker.internal:8080/graphql -e GRPC_SERVER_URL="[::1]:50051" cartezcash/fullnode:latest
 
-##### Interact with dApp via sunodo
+##### Interact with dApp via Cartesi CLI
 
 @deposit address amount:
-    sunodo send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
+    cartesi send ether --execLayerData=$1 --amount=$2 --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 @send txn_hex:
-    sunodo send generic --input="0x$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
+    cartesi send generic --input="0x$2" --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 execute_voucher:
     cast send 0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e "executeVoucher(address, bytes, struct Proof _proof)"
 
 send-address:
-    sunodo send dapp-address --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
+    cartesi send dapp-address --rpc-url=http://127.0.0.1:8545 --chain-id=31337 --dapp=0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e
 
 ##### wallet related commands
 

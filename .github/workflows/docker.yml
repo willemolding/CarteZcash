@@ -56,11 +56,11 @@ jobs:
         - name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v3
            
-        - name: Install Sunodo and build
+        - name: Install Cartesi CLI and build
           run: |
-            npm install -g @sunodo/cli
-            sunodo build
-            sunodo hash >> $GITHUB_OUTPUT
-            IMAGE_TAG=$(sunodo deploy build --platform linux/amd64 | grep "Application node Docker image" | awk '{print $NF}')
+            npm install -g @cartesi/cli
+            cartesi build
+            cartesi hash >> $GITHUB_OUTPUT
+            IMAGE_TAG=$(cartesi deploy build --platform linux/amd64 | grep "Application node Docker image" | awk '{print $NF}')
             docker tag $IMAGE_TAG registry.fly.io/cartezcash:latest
             docker push registry.fly.io/cartezcash:latest
