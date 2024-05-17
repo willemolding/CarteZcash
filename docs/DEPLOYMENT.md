@@ -15,8 +15,8 @@ This needs to be done first as other components depend on the result.
 First step is to build the dApp image
 
 ```shell
-sunodo build
-sunodo hash
+cartesi build
+cartesi hash
 ```
 
 Copy the templateHash that is printed out.

@@ -34,5 +34,5 @@ curl --data '{"id":1337,"jsonrpc":"2.0","method":"evm_increaseTime","params":[86
 ```
 Alternatively, you can run cartesi node with shorter epoch duration in seconds
 ```
-sunodo run --epoch-duration=60
+cartesi run --epoch-duration=60
 ```

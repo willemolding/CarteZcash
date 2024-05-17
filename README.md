@@ -151,7 +151,7 @@ This same process could likely be applied to any blockchain state transition as 
 
 - The project uses [just](https://github.com/casey/just) as a command runner. Please install that first
 - Building requires stable Rust and Cargo (tested version 1.76.0)
-- Running the demo requires Sunodo. See the [installation instructions](https://docs.sunodo.io/guide/introduction/installing)
+- Running the demo requires Cartsi CLI. See the [installation instructions](https://docs.sunodo.io/guide/introduction/installing)
     - This requires Docker be installed and the Docker host up and running
 
 ## Building
@@ -159,7 +159,7 @@ This same process could likely be applied to any blockchain state transition as 
 Build with:
 
 ```shell
-just build # or sunodo build
+just build # or cartesi build
 ```
 
 This cross-compiles for risvc using docker.
@@ -177,7 +177,7 @@ This runs CarteZcash locally rather than inside the Cartesi machine. This is a b
 Start the Sunodo services (Anvil, cartesi node, subsquid, etc) with:
 
 ```shell
-sunodo-nobackend # or sunodo run --no-backend
+run-nobackend # or cartesi run --no-backend
 just run-local
 ```
 
@@ -186,8 +186,8 @@ just run-local
 If you want to see it running in the Cartesi machine for real then build and run with
 
 ```shell
-sunodo build
-sunodo run
+cartesi build
+cartesi run
 ```
 
 #### Terminal 2 - Proxy
@@ -198,7 +198,7 @@ Start the proxy with service with
 just run-proxy
 ```
 
-This is set up to work correctly with the default sunodo configuration of addresses and ports
+This is set up to work correctly with the default cartesi configuration of addresses and ports
 
 #### Terminal 3 - Wallet
 
