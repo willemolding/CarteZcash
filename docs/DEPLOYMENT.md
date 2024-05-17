@@ -28,7 +28,7 @@ https://sunodo.io/deploy?templateHash=<template-hash>
 ```
 and select the chain to deploy to and provide the wallet address of the dApp operator.
 
-Make the deployment transaction and copy the resulting variables show into the [fly.toml](./fly.toml) file.
+Make the deployment transaction and copy the resulting variables show into the [fly.toml](../fly.toml) file. Also update the Dapp address in the bridge-frontent [config.json](../bridge-frontend/src/config.json).
 
 ## Hosted Deployments (via Github actions)
 
