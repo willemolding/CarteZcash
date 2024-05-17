@@ -45,3 +45,6 @@ Wait a few minutes and it should be ready to go!
 
 Wallets can sync using https://cartezcash-fullnode.fly.dev:443 as their lightwalletd GRPC provider
 Deposit funds on the bridge at https://willemolding.github.io/CarteZcash/
+
+> [!INFO]
+> If you get an error that the rollup hash does not match, copy the machine hash from the logs of the "Publish Docker Images" instead of using `cartesi hash`. Repeat the deployment again (but no need to rerun the docker build)
