@@ -13,7 +13,7 @@
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
         "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
-        "DAppAddress": "0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e"
+        "DAppAddress": "0x6D535e95C78d564DE9f241f4651131023688d706"
     },
     "0xaa36a7":{
         "token": "SepETH",
@@ -29,6 +29,6 @@
         "Erc721PortalAddress":"0x237F8DD094C0e47f4236f12b4Fa01d6Dae89fb87",
         "Erc1155SinglePortalAddress":"0x7CFB0193Ca87eB6e48056885E026552c3A941FC4",
         "Erc1155BatchPortalAddress":"0xedB53860A6B52bbb7561Ad596416ee9965B055Aa",
-        "DAppAddress": "0xab7528bb862fB57E8A2BCd567a2e929a0Be56a5e"
+        "DAppAddress": "0x6D535e95C78d564DE9f241f4651131023688d706"
     }
 }
