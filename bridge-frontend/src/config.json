@@ -18,7 +18,7 @@
     "0xaa36a7":{
         "token": "SepETH",
         "label": "Sepolia Test Network",
-        "rpcUrl": "https://eth-goerli.g.alchemy.com/v2/demo",
+        "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/demo",
         "graphqlAPIURL" : "https://cartezcash.fly.dev",
         "inspectAPIURL":"https://cartezcash.fly.dev",
         "RollupExitAddress": "u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g",
