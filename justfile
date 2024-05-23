@@ -51,6 +51,9 @@ start-wallet:
 restart-wallet:
     zingo-cli --data-dir ./walletdata --server localhost:50051
 
+start-wallet-testnet:
+    zingo-cli --server https://cartezcash-fullnode.fly.dev:443 --birthday 0
+
 start-wallet-2:
     zingo-cli --data-dir ./walletdata2 --server localhost:50051 --from "february day pink knee nut struggle poem silver hawk voice stay rule food cabbage eight phrase parent spider forget laundry wagon dwarf improve flee" --birthday 0
 restart-wallet-2:

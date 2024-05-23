@@ -12,6 +12,8 @@ use tower_cartesi::{Request as RollAppRequest, Response};
 
 use futures_util::future::FutureExt;
 
+const DAPP_RELAY_CONTRACT_ADDRESS: &str = "f5de34d6bbc0446e2a45719e718efebaae179dae";
+
 #[cfg(feature = "lightwalletd")]
 use cartezcash_lightwalletd::{
     proto::service::compact_tx_streamer_server::CompactTxStreamerServer,
@@ -146,8 +148,12 @@ impl Service<RollAppRequest> for CarteZcashApp {
     fn call(&mut self, req: RollAppRequest) -> Self::Future {
         match req {
             RollAppRequest::AdvanceState { metadata, payload } => {
-                // if the payload is 20 bytes, it is the dapp address. Handle it then exit early
-                if payload.len() == 20 {
+                // if sent by this address the message is relaying the dApp address. Handle accordingly
+                if metadata.msg_sender
+                    == ethereum_types::Address::from_slice(
+                        &hex::decode(DAPP_RELAY_CONTRACT_ADDRESS).unwrap(),
+                    )
+                {
                     let dapp_address = ethereum_types::Address::from_slice(&payload);
                     tracing::info!("Received dapp address: {:?}", dapp_address);
                     self.dapp_address = Some(dapp_address);

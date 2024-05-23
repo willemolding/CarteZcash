@@ -168,20 +168,25 @@ This cross-compiles for risvc using docker.
 
 ### Setup 
 
-#### Terminal 1 - Rollup Node
-
-##### Local Mode
+#### Option 1 - Local Mode
 
 This runs CarteZcash locally rather than inside the Cartesi machine. This is a bit faster and easier to debug.
 
 Start the Sunodo services (Anvil, cartesi node, subsquid, etc) with:
 
 ```shell
-run-nobackend # or cartesi run --no-backend
+just run-nobackend # or cartesi run --no-backend
+```
+
+in another shell run the dApp in local mode
+
+```shell
 just run-local
 ```
 
-##### Cartesi Machine Mode
+This command runs the program in fullnode mode so there is no need to run another process.
+
+#### Option 1 - Cartesi Machine Mode
 
 If you want to see it running in the Cartesi machine for real then build and run with
 
@@ -190,17 +195,17 @@ cartesi build
 cartesi run
 ```
 
-#### Terminal 2 - Proxy
+We also need to run a fullnode process. The full node is required to cache blockchain state and serve data to wallets.
 
-Start the proxy with service with
+In another shell start the fullnode with service with:
 
 ```shell
-just run-proxy
+just run-fullnode
 ```
 
 This is set up to work correctly with the default cartesi configuration of addresses and ports
 
-#### Terminal 3 - Wallet
+#### Terminal 2 - Wallet
 
 Install and start a Zingo CLI wallet based off the Cartezcash fork with:
 
@@ -221,7 +226,12 @@ just start-wallet-2
 
 #### Deposit into L2
 
-First lets deposit some 1 Eth from the L1 anvil testnet into the L2. To do this get the hex encoded transparent address of the wallet by running `addresses` in zingo-wallet
+First lets deposit some 1 Eth from the L1 anvil testnet into the L2. To do this get the hex encoded transparent address of the wallet by running
+
+```shell
+>> addresses
+```
+in zingo-wallet which should respond with something like:
 
 ```
 (mainnet) Block:0 (type 'help') >> addresses
@@ -258,7 +268,7 @@ You should see the transparent balance update!
 
 #### Shield funds
 
-Now to shield these funds so they are private. From the Wallet CLI run
+Now to shield these funds so they are private. From the Zingo Wallet CLI run
 
 ```shell
 >> shield all
