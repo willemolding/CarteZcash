@@ -42,7 +42,7 @@ send-address:
 ##### wallet related commands
 
 install-wallet:
-    cargo install --git https://github.com/willemolding/zingolib --branch willem/tinycash-desktop --bin zingo-cli
+    cargo install --force --git https://github.com/willemolding/zingolib --branch willem/tinycash-desktop --bin zingo-cli
 
 ## Do not use these wallets on mainnet!
 
