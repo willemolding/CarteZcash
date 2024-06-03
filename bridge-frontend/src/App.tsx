@@ -69,7 +69,6 @@ const App: FC = () => {
 
   const [{ wallet, connecting }, connect] = useConnectWallet();
   const [dappAddress, setDappAddress] = useState<string>("");
-  const [account, setAccount] = useState<string>();
 
   useEffect(() => {
     const switchChain = async (hexChainId: string) => {
