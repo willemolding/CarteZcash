@@ -1,7 +1,8 @@
 app = "cartezcash-fullnode"
 
 [build]
-image = "registry.fly.io/cartezcash-fullnode:latest"
+# image = "registry.fly.io/cartezcash-fullnode:latest"
+dockerfile = "fullnode.Dockerfile"
 
 [[services]]
   internal_port = 50051

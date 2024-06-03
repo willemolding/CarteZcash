@@ -93,6 +93,7 @@ pub async fn listen_graphql<S>(
 ) -> Result<(), Error<S::Error>>
 where
     S: Service<Request, Response = Response>,
+    S::Error: std::fmt::Debug,
 {
     let client = reqwest::Client::new();
     let mut cursor = None;
@@ -109,10 +110,18 @@ where
             resp.json().await?;
         for edge in response_body.data.unwrap().inputs.edges.into_iter() {
             cursor = Some(edge.cursor);
-            service
+            match service
                 .call(edge.node.try_into().unwrap())
                 .await
-                .map_err(Error::ServiceError)?;
+                .map_err(Error::ServiceError)
+            {
+                Ok(r) => {
+                    tracing::info!("Received response: {:?}", r);
+                }
+                Err(e) => {
+                    tracing::error!("{:?}", e);
+                }
+            }
         }
         interval.tick().await;
     }
