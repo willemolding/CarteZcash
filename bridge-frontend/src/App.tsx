@@ -13,6 +13,7 @@
 import { FC, useEffect } from "react";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init, useConnectWallet, useSetChain } from "@web3-onboard/react";
+import metamaskSDK from "@web3-onboard/metamask";
 import { useState } from "react";
 
 import { GraphQLProvider } from "./GraphQL";
@@ -33,9 +34,20 @@ import Header from "./Header";
 
 const config: any = configFile;
 
+// initialize the module with options
+const metamaskSDKWallet = metamaskSDK({
+  options: {
+    extensionOnly: false,
+    dappMetadata: {
+      name: "CarteZcash Bridge",
+    },
+  },
+});
+
 const injected: any = injectedModule();
+
 init({
-  wallets: [injected],
+  wallets: [injected, metamaskSDKWallet],
   chains: Object.entries(config).map(([k, v]: [string, any], i) => ({
     id: k,
     token: v.token,
@@ -57,20 +69,30 @@ const App: FC = () => {
 
   const [{ wallet, connecting }, connect] = useConnectWallet();
   const [dappAddress, setDappAddress] = useState<string>("");
+  const [account, setAccount] = useState<string>();
 
   useEffect(() => {
+    const switchChain = async (hexChainId: string) => {
+      try {
+        const result = await wallet?.provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: hexChainId }], // chainId must be in hexadecimal numbers
+        });
+        console.log(`result: `, result);
+      } catch (err: unknown) {
+        console.log(typeof err);
+        console.log(err);
+      }
+    };
+
     if (connectedChain) {
-      setDappAddress(config[connectedChain.id].DAppAddress);
+      if (connectedChain.id !== "0xaa36a7") {
+        switchChain("0xaa36a7");
+      } else {
+        setDappAddress(config[connectedChain.id].DAppAddress);
+      }
     }
-  }, [connectedChain]);
-
-
-
-  useEffect(() => {
-    if (connectedChain) {
-      setDappAddress(config[connectedChain.id].DAppAddress);
-    }
-  }, [connectedChain]);
+  }, [connectedChain, wallet]);
 
   return (
     <>
