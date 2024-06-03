@@ -60,7 +60,8 @@ impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
                     to: dest_t_address,
                 })
             }
-            _ => { // If it is unrecognised then assume it is an inputBox message. This gets around a suspected bug
+            _ => {
+                // If it is unrecognised then assume it is an inputBox message. This gets around a suspected bug
                 /* Encoding
                 abi.encodePacked(
                     transaction bytes // arbitrary size

@@ -43,6 +43,9 @@ Finally run
 fly deploy
 ```
 
+> ![note]
+> Don't forget to relay the dApp its address at some point by running `cartesi send` otherwise withdrawals will be disabled
+
 ### Fullnode deployment
 
 Update the DAPP_ADDRESS in the fly.fullnode.toml
@@ -51,7 +54,7 @@ Build and deploy the fullnode in one step by running
 
 ```shell
 fly deploy --config fly.fullnode.toml 
-fly restart cartezcash-fullnode    
+fly app restart cartezcash-fullnode    
 ```
 
 ### Bridge UI deployment
