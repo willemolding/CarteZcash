@@ -14,6 +14,9 @@ run-local:
 run-fullnode:
     cargo run --no-default-features --features listen-graphql,lightwalletd 
 
+run-fullnode-testnet:
+    ROLLUP_HTTP_SERVER_URL=https://cartezcash.fly.dev/graphql cargo run --no-default-features --features listen-graphql,lightwalletd 
+
 run-nobackend:
     cartesi run --no-backend --epoch-duration=10
 
