@@ -178,7 +178,9 @@ impl tower::Service<Request> for TinyCash {
         if let Some(tx) = tx_to_verify.as_ref() {
             if let Some(data) = tx.orchard_shielded_data() {
                 if !self.historical_tree_roots.contains(&data.shared_anchor) {
-                    panic!("Tree root not found in state. Witness may be invalid or too old");
+                    return async move {
+                        Err("Tree root not found in state. Witness may be invalid or too old. Skipping transaction".into())
+                    }.boxed();
                 }
             }
         }
