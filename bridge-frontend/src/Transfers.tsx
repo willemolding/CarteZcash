@@ -10,7 +10,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useRollups } from "./useRollups";
 import { useWallets } from "@web3-onboard/react";
@@ -67,8 +67,16 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
     }
   };
 
-  const [etherAmount, setEtherAmount] = useState<string>("");
+  const [etherAmount, setEtherAmount] = useState<string>("0");
   const [destAddress, setDestAddress] = useState<string>("t1");
+
+  const [withdrawAmount, setWithdrawAmount] = useState<string>("0");
+  const [withdrawAddress, setWithdrawAddress] = useState<string>(connectedWallet.accounts[0].address);
+  const [withdrawCommand, setWithdrawCommand] = useState<string>("");
+
+  useEffect(() => {
+    setWithdrawCommand(`send ${rollups?.rollupExitAddress} ${ethers.utils.parseEther(withdrawAmount).div(10000000000)} ${withdrawAddress.replace('0x', '')}`)
+  }, [withdrawAddress, withdrawAmount, rollups])
 
   return (
     <Card
@@ -182,11 +190,23 @@ export const Transfers: React.FC<IInputPropos> = (propos) => {
             <TabPanel>
               <Accordion defaultIndex={[0]} allowMultiple>
                 <Text fontSize="large" color="grey">
-                  To withdraw send funds to the exit address{" "}
-                  {rollups?.rollupExitAddress} on the L2 then execute
-                  the resulting voucher here
+                  To withdraw set the parameters then execute the resulting command in Zingo-cli
                 </Text>
+                <Stack>
+                <label>Amount (Eth)</label>
+                <EtherInput
+                  onChange={(value: string) => setWithdrawAmount(value)}
+                  value={withdrawAmount}
+                />
+                <label>Withdrawal Eth Address</label>
+                <Input value={withdrawAddress} onChange={(e) => setWithdrawAddress(e.target.value)}></Input>
+                <label>Zingo withdraw command</label>
+                <Input value={withdrawCommand} disabled={true}></Input>
+                </Stack>
                 <br />
+                <Text fontSize="large" color="grey">
+                  Once processed a voucher will appear here to claim the funds
+                </Text>
                 <Vouchers dappAddress={propos.dappAddress} />
               </Accordion>
             </TabPanel>
