@@ -299,6 +299,12 @@ After waiting for the transactions to verify you should be able to rescan both w
 
 #### Withdraw to L1
 
+Before attempting to withdraw you must let the app know its own address by running
+
+```shell
+just send-address
+```
+
 You can now withdraw funds from either wallet by sending to the Mt Doom address (`u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g`). We will withdraw from Wallet 2
 
 ```
