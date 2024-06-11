@@ -66,6 +66,8 @@ This contains the top level logic of querying the host for `AdvanceState`/`Inspe
 
 It also deals with reponding to detected coin burns and issuing withdrawal vouchers.
 
+This can run in two modes depending on the Cargo features configured during build. With the default features it runs in the mode to be executed within the Cartesi machine. With features `listen-graphql,lightwalletd` it runs as a CarteZcash fullnode which stores the full chain state in order to serve wallets.
+
 ### [tiny-cash crate](./tiny-cash/)
 
 This crate exports a tower service through which requests can be made to make state transitions in the blockchain. It exposes a simple interface defined by the `Request` enum:
@@ -85,14 +87,6 @@ pub enum Request {
 ```
 
 This service itself is created from two Zebra tower services - a state service and a transaction verifier service. The []`TinyCashWriteService::call()`](https://github.com/willemolding/CarteZcash/blob/4804db1af4f395b818d675244b53f94e02e4edf5/tiny-cash/src/write.rs#L94) function is where the majority of the logic is contained.
-
-### [cartezcash-proxy](./cartezcash-proxy/)
-
-This is the translation layer that allows existing Zcash wallets to work (almost) seamlessly with CarteZcash. It exposes a GRPC server generated to match the `lightwalletd` protocol. Only the minimal methods required to use Zingo wallet are implemented.
-
-The service acts as a translation layer turning wallet queries into Cartesi inspect_state requests and handling the results. It can alternatively be instantiated directly from a `zebra_chain::ReadService` for running in local mode.
-
-> note that files in the `proto` directory were auto-generated from protobuf and do not need to be reviewed
 
 ## Challenges Faced
 
@@ -119,7 +113,7 @@ The main changes made were to apply all Zcash historical chain upgrades in the f
 
 One of the early goals for the project was to be able to integrate with the existing Zcash ecosystem wallets and tools. This also proved a bit tricky due to hard-coded network parameters. Getting a wallet to work requires some minor changes around checkpointing to remove hard-coded historical blocks. The wallet also had to be configured to include spends to pay the miner fees as they are not required for CarteZcash.
 
-Integrating with the [Zingo](https://github.com/zingolabs/zingolib) CLI wallet proved pretty straightforward although some issues still remain around observing shielded pool balances.
+Integrating with the [Zingo](https://github.com/zingolabs/zingolib) CLI wallet proved pretty straightforward and othere wallets can be modified in the future.
 
 ## Future Work
 
@@ -129,9 +123,9 @@ Another approach might be to use blobs or a separate DA service to store the tra
 
 ### Outstanding Issues
 
-Currently the blockchain state and history is stored in the cartesi machine meaning eventually the data storage requirements will grow too large to continue. A more sustainable approach is to prune old blocks, checkpoint commitments to the state on L1, and have an off-chain indexer that can reproduce the state to assist wallets in producing transaction proofs. It is definitely possible to have a rollup that could run indefinitely but it requires major changes to wallets and the blockchain node and is outside the scope of this project.
-
-There is a currently a bug where rescanning the wallet after you have made a transparent transaction crashes the wallet. This is probably just a tiny fix needed to either Zingo or the proxy but I ran out of time to find it.
+The fullnode currently has a few issues making some wallets behave strangely.
+- It doesn't simulate the mempool properly so wallets don't get notified when transactions are accepted and need to rescan
+- It fails on batch queries in some cases so wallet sync is slow
 
 ## Hackathon Reflection
 
@@ -186,7 +180,7 @@ just run-local
 
 This command runs the program in fullnode mode so there is no need to run another process.
 
-#### Option 1 - Cartesi Machine Mode
+#### Option 2 - Cartesi Machine Mode
 
 If you want to see it running in the Cartesi machine for real then build and run with
 
@@ -197,6 +191,10 @@ cartesi run
 
 We also need to run a fullnode process. The full node is required to cache blockchain state and serve data to wallets.
 
+#### Fullnode
+
+The fullnode is needed to serve the wallets. It connects to a cartesi machine running the cartezcash dApp and processes the transactions, and maintains a chain state the wallets can query. There can be any number of full nodes for a single CarteZcash dApp.
+
 In another shell start the fullnode with service with:
 
 ```shell
@@ -204,6 +202,9 @@ just run-fullnode
 ```
 
 This is set up to work correctly with the default cartesi configuration of addresses and ports
+
+> [!INFO]
+> You can also run a full node connected to the live Cartezcash testnet by running `just run-fullnode-testnet`
 
 #### Terminal 2 - Wallet
 
@@ -239,7 +240,7 @@ in zingo-wallet which should respond with something like:
   {
     "address": "...",
     "receivers": {
-      "transparent": "t1gFWLbUvSo27sp6XBHAEb9YpVLMcgNADDU (0xf5772fe264e896c51d37a41648778b5155134b15)", <------- THIS ONE
+      "transparent": "t1gFWLbUvSo27sp6XBHAEb9YpVLMcgNADDU", <------- THIS ONE
       "sapling": "...",
       "orchard_exists": true
     }
@@ -271,18 +272,13 @@ You should see the transparent balance update!
 Now to shield these funds so they are private. From the Zingo Wallet CLI run
 
 ```shell
->> shield all
+>> shield
+>> confirm
 ```
 
-This will take a few moments to produce the ZK proof for the transaction and then dump the transaction hex to the console. Copy this to the clipboard.
+This will build a transaction and send it to the full-node which will submit it to the InputBox contract to be processed by the rollApp.
 
-Next we want to send this transaction to the rollup via the InputBox contract. To do this in a new shell run
-
-```shell
-just send <paste-large-hex-string-here>
-```
-
-Want a minute or so for the Cartesi node to verify the ZK proofs and once you see `Sending finish` then run `rescan` and `balance` in the wallet to see the funds moved to the Orchard shielded pool.
+Want a minute or so for the Cartesi node to verify the ZK proofs then run `rescan` and `balance` in the wallet to see the funds moved to the Orchard shielded pool.
 
 #### Send Shielded Funds
 
@@ -296,26 +292,18 @@ and get the wallet address same as before. Lets send to its private address this
 From the original wallet run the following:
 ```
 >> send u1q7myvyvetdvl26jde38h0qg39crx3kz3nnfuryvkz579gql6375s78076z7mqs9yypdr2wu3j4xfltqswqenk66f0jamg3g0wr8330xdw778twy5kmgkz0y2u8sh9qpumynrwkkuarfxqpjf3nvkm07vdlxxtm376fm2tyyl7jm9wfgmtupmvh4yjslcdqaz90c6v5g0txf9v55m36a 50000000
-```
-
-Submit the transaction as before
-
-```shell
-just send <paste-large-hex-string-here>
+>> confirm
 ```
 
 After waiting for the transactions to verify you should be able to rescan both wallets and see the balances updated!
 
 #### Withdraw to L1
 
-You can now withdraw funds from either wallet by sending to the Mt Doom address (`t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs`). We will withdraw from Wallet 2
+You can now withdraw funds from either wallet by sending to the Mt Doom address (`u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g`). We will withdraw from Wallet 2
 
 ```
->> send t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs 50000000
-```
-
-```shell
-just withdraw 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 <paste-large-hex-string-here>
+>> send u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g 50000000 <eth-address>
+>> confirm
 ```
 
 You should see CarteZcash detect the burn and issue a withdrawal voucher.
@@ -329,4 +317,5 @@ Big thanks to:
 - [Mugen Builders](https://github.com/Mugen-Builders) for the wallet template I used in the demo
 - [Zebra](https://github.com/ZcashFoundation/zebra) team for their easy to follow codebase
 - [Zingo Labs](https://github.com/zingolabs) for developing Zingo wallet
+- [Ayad](https://github.com/ayad318) for improving the web wallet design
 - [lychee](https://twitter.com/LycheeLyrica) for the logo and banner
