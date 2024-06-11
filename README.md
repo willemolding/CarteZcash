@@ -46,15 +46,15 @@ The prepared transactions just need to be serialized and then sent to CarteZcash
 
 To withdraw from the CarteZcash L2 and get your coins back on L1 you simply cast your coins into the fires of Mt Doom!
 
-What this means is you make a transparent transaction sending your coins to the Mt Doom address `t1Hsc1LR8yKnbbe3twRp88p6vFfC5t7DLbs`. This address has no private key so the coins can never be spent again.
+What this means is you make a transparent transaction sending your coins to the Mt Doom address `u1k7ant55p6u5lgwhf9ss4qurcz35pjeav398lw0e0xmqqdm0aksvhrpa2gtnmv83lggean4pm8n7tgtr9ssnrpevkyrgw9y5e4ck23j6g`. This address has no private key so the coins can never be spent again.
 
 CarteZcash watches for transaction to this address and when it observes one will issue a voucher to release the corresponding number of coins on L1.
 
-### Wallet Interface
+### Fullnode Wallet Interface
 
-CarteZcash integrates with existing Zcash wallets via the [cartezcash-proxy](./cartezcash-proxy/) component. The proxy exposes a GRPC interface that matches the [lightwalletd](https://zcash.readthedocs.io/en/latest/rtd_pages/lightclient_support.html) specification. This allows any complaint wallet to read the blockchain state and request the require info to update the wallet balances.
+CarteZcash integrates with existing Zcash wallets via the full-node component. This exposes a GRPC interface that matches the [lightwalletd](https://zcash.readthedocs.io/en/latest/rtd_pages/lightclient_support.html) specification. This allows any compliant wallet to read the blockchain state and request the require info to update the wallet balances.
 
-The proxy is essentially an indexer that runs the same program as the Cartesi machine but with additional data storage and interfaces. Having the proxy allows the program running in the Cartesi machine to aggressively prune old block data which is no longer needed for verification but wallets might need for updating their balance. It also avoids having to use the `inspect` HTTP API to retrieve state and allows for using GRPC instead.
+The fullnode essentially an indexer that runs the same program as the Cartesi machine but with additional data storage and interfaces. Having the fullnode allows the program running in the Cartesi machine to keep only minimal chains state and history and outsource this to a non-provable component.
 
 ## Repo Structure
 
