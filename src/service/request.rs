@@ -20,7 +20,6 @@ pub enum Request {
 }
 
 const ETH_DEPOSIT_ADDR: &str = "ffdbe43d4c855bf7e0f105c400a50857f53ab044";
-const INBOX_CONTRACT_ADDR: &str = "59b22D57D4f067708AB0c00552767405926dc768";
 
 impl TryFrom<(tower_cartesi::AdvanceStateMetadata, Vec<u8>)> for Request {
     type Error = anyhow::Error;

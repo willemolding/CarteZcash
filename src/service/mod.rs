@@ -28,15 +28,19 @@ impl From<tiny_cash::service::Response> for Response {
                 .burns
                 .iter()
                 .filter_map(|(amount, memo)| {
-                    if let Ok(address_bytes) = hex::decode(&memo.0[0..40]) { // expect unicode hex no 0x prefix (inefficient). skip the version byte at the start
+                    if let Ok(address_bytes) = hex::decode(&memo.0[0..40]) {
+                        // expect unicode hex no 0x prefix (inefficient). skip the version byte at the start
                         Some((
                             ethereum_types::Address::from_slice(&address_bytes),
                             ethereum_types::U256::from(amount.zatoshis()),
                         ))
                     } else {
-                        tracing::debug!("failed to decode address from burn memo {:?}. Skipping withdrawal.", memo.0);
+                        tracing::debug!(
+                            "failed to decode address from burn memo {:?}. Skipping withdrawal.",
+                            memo.0
+                        );
                         None
-                    }                    
+                    }
                 })
                 .collect(),
             block: res.block,

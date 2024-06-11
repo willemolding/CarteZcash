@@ -97,6 +97,12 @@ pub struct Response {
     pub burns: Vec<(Amount<NonNegative>, Memo)>,
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("invalid transaction ({0:?})")]
+    InvalidTransaction(String),
+}
+
 impl tower::Service<Request> for TinyCash {
     type Response = Response;
     type Error = BoxError;
@@ -159,7 +165,9 @@ impl tower::Service<Request> for TinyCash {
         // check this block doesn't reuse a known nullifier then add the block nullifiers to the state
         for nullifier in block.clone().orchard_nullifiers() {
             if self.nullifier_set.contains(nullifier) {
-                panic!("duplicate nullifier detected");
+                return async move {
+                    Err("Duplicate nullifier detected. Skipping transaction".into())
+                }.boxed();
             }
         }
         self.nullifier_set
@@ -242,7 +250,10 @@ impl TinyCash {
                 ..
             } => {
                 if sapling_shielded_data.is_some() {
-                    panic!("Sapling shielded data is not supported");
+                    return Err(Error::InvalidTransaction(
+                        "Sapling shielded data is not supported".to_string(),
+                    )
+                    .into());
                 }
                 let shielded_sighash = tx.sighash(
                     NetworkUpgrade::Nu5,
@@ -270,7 +281,12 @@ impl TinyCash {
                     &shielded_sighash,
                 )?)
             }
-            _ => panic!("Only V5 transactions are supported"),
+            _ => {
+                return Err(Error::InvalidTransaction(
+                    "Only v5 transactions are supported".to_string(),
+                )
+                .into());
+            }
         };
         async_checks.check().await
     }
