@@ -1,3 +1,4 @@
+use inputs_query::CompletionStatus;
 use thiserror::Error;
 use tokio::time::interval;
 use tower_service::Service;
@@ -78,7 +79,7 @@ use graphql_client::GraphQLQuery;
 #[graphql(
     schema_path = "graphql/schema.graphql",
     query_path = "graphql/inputs_query.graphql",
-    response_derives = "Debug"
+    response_derives = "Debug, PartialEq"
 )]
 pub struct InputsQuery;
 
@@ -108,7 +109,14 @@ where
         let resp = client.post(host_uri).json(&request_body).send().await?;
         let response_body: graphql_client::Response<inputs_query::ResponseData> =
             resp.json().await?;
-        for edge in response_body.data.unwrap().inputs.edges.into_iter() {
+        for edge in response_body
+            .data
+            .unwrap()
+            .inputs
+            .edges
+            .into_iter()
+            .filter(|edge| edge.node.status == CompletionStatus::ACCEPTED)
+        {
             cursor = Some(edge.cursor);
             match service
                 .call(edge.node.try_into().unwrap())

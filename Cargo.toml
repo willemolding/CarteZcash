@@ -38,7 +38,7 @@ ethabi = "18.0.0"
 alloy-json-abi = "0.7.2"
 
 [features]
-default = ["listen-http"]
+default = ["listen-http", "preinitialize-halo2"]
 lightwalletd = ["dep:cartezcash-lightwalletd", "dep:tonic", "dep:zebra-state"]
 preinitialize-halo2 = []
 listen-http = []
