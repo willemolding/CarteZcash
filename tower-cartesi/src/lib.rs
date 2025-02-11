@@ -7,7 +7,7 @@ mod messages;
 mod request;
 mod response;
 
-pub use messages::AdvanceStateMetadata;
+pub use messages::{AdvanceStateMetadata, Output};
 pub use request::Request;
 pub use response::Response;
 
