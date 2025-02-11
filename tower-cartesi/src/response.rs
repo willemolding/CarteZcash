@@ -30,6 +30,12 @@ impl Response {
         });
     }
 
+    pub fn add_notice(&mut self, payload: &[u8]) {
+        self.outputs.push(Output::Notice {
+            payload: payload.to_vec(),
+        });
+    }
+
     pub fn finish_message(&self) -> Finish {
         match self.status {
             Status::Accept => Finish::accept(),
